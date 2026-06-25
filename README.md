@@ -60,6 +60,7 @@
 | Pengangkutan sampah tidak terdokumentasi | Riwayat pengangkutan dengan foto & catatan |
 | Aduan tong penuh tidak tersampaikan | Sistem aduan siswa dengan tracking status |
 | Laporan pengelolaan sampah manual | Laporan otomatis harian/mingguan/bulanan |
+| Lokasi pengangkutan sulit diverifikasi | Tracking map Leaflet dengan koordinat tong dan lokasi konfirmasi petugas |
 | Data tersebar | Semua data tersentralisasi per unit |
 
 ---
@@ -98,11 +99,18 @@
 - Petugas mencatat pengangkutan
 - Riwayat lengkap dengan foto dokumentasi
 - Update status tong otomatis
+- Verifikasi lokasi petugas saat konfirmasi angkut
+
+### 🗺️ Tracking Map & IoT
+- Peta Leaflet untuk titik tong, status tong, dan lokasi konfirmasi petugas
+- Koordinat tong divalidasi dan disimpan untuk monitoring lapangan
+- Endpoint sensor IoT `POST /api/sensor/update` dengan token perangkat dan rate limit
+- Log sensor dan GPS tersimpan untuk audit kondisi tong
 
 ### 📑 Laporan & Export
 - Laporan harian, mingguan, bulanan
 - Filter per unit, per petugas
-- Export **PDF** & **Excel**
+- Export **PDF** & **CSV**
 - Ringkasan statistik otomatis
 
 ### 📱 Responsive Mobile
@@ -124,7 +132,6 @@
 | **MySQL** | Database management |
 | **Laravel Sanctum** | Authentication SPA |
 | **Laravel DomPDF** | Export PDF |
-| **Laravel Excel** | Export Excel |
 
 ### Frontend
 
@@ -134,6 +141,7 @@
 | **Inertia.js 2** | Server-driven SPA |
 | **Tailwind CSS 3** | Utility CSS framework |
 | **Chart.js** | Grafik & visualisasi data |
+| **Leaflet** | Peta tracking tong dan petugas |
 | **SweetAlert2** | Notifikasi modern |
 | **Headless UI** | Aksesibel UI components |
 
@@ -209,8 +217,7 @@ sipesa/
 ├── config/                     # Laravel configuration
 ├── database/
 │   ├── migrations/             # Skema database
-│   ├── seeders/                # Data awal
-│   └── database.sqlite         # SQLite (opsional)
+│   └── seeders/                # Data awal
 ├── resources/
 │   ├── js/                     # Frontend React
 │   │   ├── Components/         # Shared components
@@ -335,6 +342,33 @@ npm run dev
 
 Akses aplikasi di **http://localhost:8000** 🎉
 
+### ✅ Checklist Produksi
+
+Sebelum deploy ke server produksi:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://domain-produksi-anda
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+```
+
+Lalu jalankan:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+php artisan migrate --force
+php artisan storage:link
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Pastikan database MySQL, kredensial mail, dan token perangkat IoT sudah diganti dari nilai demo.
+
 ### ⚡ Quick Setup (Semua Sekali)
 
 ```bash
@@ -390,12 +424,14 @@ php artisan serve
 - [x] Aduan siswa dengan upload foto
 - [x] Riwayat pengangkutan
 - [x] Laporan harian/mingguan/bulanan
-- [x] Export PDF & Excel
+- [x] Export PDF & CSV
+- [x] Tracking map Leaflet untuk tong dan konfirmasi lokasi petugas
+- [x] Integrasi API sensor IoT dengan log GPS
+- [x] Hardening akses role, scope unit, upload, rate limit, dan security headers
 - [x] Responsive mobile-first design
 
 ### 🚧 Versi 1.1 (Next)
 - [ ] Notifikasi realtime (WebSocket/Pusher)
-- [ ] Map lokasi tong sampah (Leaflet.js)
 - [ ] Jadwal pengangkutan otomatis
 - [ ] Grafik lebih detail & interaktif
 - [ ] Dark mode
@@ -405,7 +441,6 @@ php artisan serve
 ### 🔮 Versi 2.0 (Future)
 - [ ] Mobile app (React Native)
 - [ ] Machine learning prediksi penuh tong
-- [ ] IoT integration (sensor tong pintar)
 - [ ] Multi-kampus support
 - [ ] Dashboard realtime multi-bahasa
 
@@ -457,9 +492,9 @@ Distribusi di bawah lisensi **MIT**. Lihat [LICENSE](LICENSE) untuk informasi le
 - [Tailwind CSS](https://tailwindcss.com/) — CSS Framework
 - [Inertia.js](https://inertiajs.com/) — SPA Adapter
 - [Chart.js](https://www.chartjs.org/) — Chart Library
+- [Leaflet](https://leafletjs.com/) — Tracking Map
 - [SweetAlert2](https://sweetalert2.github.io/) — Alert Library
 - [DomPDF](https://github.com/barryvdh/laravel-dompdf) — PDF Export
-- [Laravel Excel](https://laravel-excel.com/) — Excel Export
 
 ### Dukungan
 
@@ -468,7 +503,6 @@ Distribusi di bawah lisensi **MIT**. Lihat [LICENSE](LICENSE) untuk informasi le
     <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" height="40" alt="Laravel">
   </a>
 </p>
-
 ---
 
 <p align="center">

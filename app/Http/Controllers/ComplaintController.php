@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\{Complaint, TrashBin, Activity};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ComplaintController extends Controller
@@ -15,9 +14,13 @@ class ComplaintController extends Controller
 
         $user = $request->user();
 
-        if ($user->isAdminUnit()) {
-            $query->whereHas('trashBin.unit', function ($q) use ($user) {
-                $q->where('id', $user->unit_id);
+        if ($user->isScopedToUnit()) {
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('trashBin', fn ($trashBin) => $trashBin->where('unit_id', $user->unit_id))
+                    ->orWhere(function ($fallback) use ($user) {
+                        $fallback->whereNull('trash_bin_id')
+                            ->whereHas('user', fn ($reporter) => $reporter->where('unit_id', $user->unit_id));
+                    });
             });
         }
 
@@ -29,7 +32,10 @@ class ComplaintController extends Controller
             $query->where('status', $request->status);
         }
 
-        $trashBins = TrashBin::whereIn('status', ['penuh', 'setengah_penuh'])->get();
+        $trashBins = TrashBin::query()
+            ->when($this->mustStayInOwnUnit($user), fn ($q) => $q->where('unit_id', $user->unit_id))
+            ->whereIn('status', ['penuh', 'setengah_penuh'])
+            ->get();
 
         $complaints = $query->paginate(15)->appends($request->only(['status']));
 
@@ -45,9 +51,19 @@ class ComplaintController extends Controller
         $validated = $request->validate([
             'trash_bin_id' => 'nullable|exists:trash_bins,id',
             'judul' => 'required|string|max:255',
-            'deskripsi' => 'required|string',
-            'foto' => 'nullable|image|max:2048',
+            'deskripsi' => 'required|string|max:3000',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
+
+        if (! empty($validated['trash_bin_id']) && $this->mustStayInOwnUnit($request->user())) {
+            $belongsToUnit = TrashBin::where('id', $validated['trash_bin_id'])
+                ->where('unit_id', $request->user()->unit_id)
+                ->exists();
+
+            if (! $belongsToUnit) {
+                abort(403, 'Tong aduan berada di luar unit Anda.');
+            }
+        }
 
         if ($request->hasFile('foto')) {
             $validated['foto'] = $request->file('foto')->store('complaints', 'public');
@@ -67,8 +83,10 @@ class ComplaintController extends Controller
         return redirect()->back()->with('success', 'Aduan berhasil dikirim.');
     }
 
-    public function show(Complaint $complaint)
+    public function show(Request $request, Complaint $complaint)
     {
+        $this->authorizeComplaintAccess($request, $complaint);
+
         return Inertia::render('Complaints/Show', [
             'complaint' => $complaint->load('user', 'trashBin.unit', 'ditanggapiOleh'),
         ]);
@@ -76,9 +94,11 @@ class ComplaintController extends Controller
 
     public function tanggapi(Request $request, Complaint $complaint)
     {
+        $this->authorizeComplaintAccess($request, $complaint, write: true);
+
         $validated = $request->validate([
             'status' => 'required|in:diproses,selesai',
-            'tanggapan' => 'required|string',
+            'tanggapan' => 'required|string|max:3000',
         ]);
 
         $complaint->update([
@@ -97,8 +117,10 @@ class ComplaintController extends Controller
         return redirect()->back()->with('success', 'Aduan berhasil ditanggapi.');
     }
 
-    public function destroy(Complaint $complaint)
+    public function destroy(Request $request, Complaint $complaint)
     {
+        $this->authorizeComplaintAccess($request, $complaint, write: true);
+
         $judul = $complaint->judul;
 
         $complaint->delete();
@@ -110,5 +132,51 @@ class ComplaintController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Aduan berhasil dihapus.');
+    }
+
+    private function authorizeComplaintAccess(Request $request, Complaint $complaint, bool $write = false): void
+    {
+        $user = $request->user();
+        $complaint->loadMissing('trashBin', 'user');
+
+        if (! $user) {
+            abort(403);
+        }
+
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        if (! $write && $user->isKepalaPusat()) {
+            return;
+        }
+
+        if ($user->isScopedToUnit()) {
+            $belongsToUsersUnit = $complaint->trashBin?->unit_id === $user->unit_id
+                || ($complaint->trash_bin_id === null && $complaint->user?->unit_id === $user->unit_id);
+
+            if ($belongsToUsersUnit) {
+                if ($write && ! $user->isAdminUnit()) {
+                    abort(403, 'Akun Kepala hanya memiliki akses lihat (read-only).');
+                }
+
+                return;
+            }
+
+            abort(403, 'Aduan ini berada di luar unit Anda.');
+        }
+
+        if (! $write && $user->isSiswa() && $complaint->user_id === $user->id) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function mustStayInOwnUnit($user): bool
+    {
+        // unit_id null (mis. unit dihapus -> set null) tetap dianggap terikat unit,
+        // sehingga discope ke whereNull dan tidak bocor ke unit lain.
+        return $user->isScopedToUnit() || $user->isSiswa();
     }
 }

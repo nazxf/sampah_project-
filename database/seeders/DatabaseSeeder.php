@@ -13,13 +13,52 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Roles
-        $superAdmin = Role::create(['name' => 'super_admin', 'label' => 'Super Admin', 'description' => 'Akses penuh ke seluruh sistem']);
-        $adminUnit = Role::create(['name' => 'admin_unit', 'label' => 'Admin Unit', 'description' => 'Mengelola unit masing-masing']);
-        $petugas = Role::create(['name' => 'petugas', 'label' => 'Petugas', 'description' => 'Petugas pengangkut sampah']);
-        $siswa = Role::create(['name' => 'siswa', 'label' => 'Siswa', 'description' => 'Siswa/masyarakat pelapor']);
+        // =========================================================
+        // ROLES (6 role + warga anonim publik)
+        // =========================================================
+        // Akses level:
+        //   super_admin   -> CRUD penuh semua unit
+        //   admin_unit    -> CRUD dalam unit-nya saja
+        //   kepala_unit   -> READ-ONLY dalam unit-nya saja
+        //   kepala_pusat  -> READ-ONLY semua unit
+        //   petugas       -> Eksekusi pengangkutan (tugas lapangan)
+        //   siswa         -> Aduan internal (login)
+        //   (anonim)      -> Halaman publik /laporan tanpa login
+        // =========================================================
+        $superAdmin = Role::create([
+            'name' => 'super_admin',
+            'label' => 'Super Admin',
+            'description' => 'Akses penuh ke seluruh sistem (CRUD semua unit).',
+        ]);
+        $adminUnit = Role::create([
+            'name' => 'admin_unit',
+            'label' => 'Admin Unit',
+            'description' => 'Mengelola unit masing-masing (CRUD dalam unit).',
+        ]);
+        $kepalaUnit = Role::create([
+            'name' => 'kepala_unit',
+            'label' => 'Kepala Unit',
+            'description' => 'Hanya melihat data unitnya sendiri (read-only, scope unit).',
+        ]);
+        $kepalaPusat = Role::create([
+            'name' => 'kepala_pusat',
+            'label' => 'Kepala Pusat',
+            'description' => 'Melihat seluruh data sistem semua unit (read-only).',
+        ]);
+        $petugas = Role::create([
+            'name' => 'petugas',
+            'label' => 'Petugas',
+            'description' => 'Petugas pengangkut sampah lapangan.',
+        ]);
+        $siswa = Role::create([
+            'name' => 'siswa',
+            'label' => 'Siswa',
+            'description' => 'Siswa/civitas yang dapat membuat aduan internal.',
+        ]);
 
-        // Units
+        // =========================================================
+        // UNITS
+        // =========================================================
         $sd = Unit::create(['nama' => 'SD Kampus B', 'jenis' => 'SD', 'alamat' => 'Jl. Pendidikan No. 1, Kampus B', 'deskripsi' => 'Sekolah Dasar']);
         $smp = Unit::create(['nama' => 'SMP Kampus B', 'jenis' => 'SMP', 'alamat' => 'Jl. Pendidikan No. 2, Kampus B', 'deskripsi' => 'Sekolah Menengah Pertama']);
         $sma = Unit::create(['nama' => 'SMA Kampus B', 'jenis' => 'SMA', 'alamat' => 'Jl. Pendidikan No. 3, Kampus B', 'deskripsi' => 'Sekolah Menengah Atas']);
@@ -28,12 +67,16 @@ class DatabaseSeeder extends Seeder
         $sumart = Unit::create(['nama' => 'Sumart Kampus B', 'jenis' => 'Sumart', 'alamat' => 'Jl. Pendidikan No. 6, Kampus B', 'deskripsi' => 'Mini Market / Kantin']);
         $umci = Unit::create(['nama' => 'UMCI Kampus B', 'jenis' => 'Umci', 'alamat' => 'Jl. Pendidikan No. 7, Kampus B', 'deskripsi' => 'Unit MCI']);
 
-        // Users
+        // =========================================================
+        // USERS — Akun contoh untuk semua role
+        // Password default: 'password' untuk semua akun
+        // =========================================================
         User::create([
             'name' => 'Super Admin',
             'email' => 'superadmin@sipesa.test',
             'password' => Hash::make('password'),
             'role_id' => $superAdmin->id,
+            'no_telepon' => '081200000001',
             'email_verified_at' => now(),
         ]);
 
@@ -43,14 +86,56 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'role_id' => $adminUnit->id,
             'unit_id' => $sd->id,
+            'no_telepon' => '081200000002',
             'email_verified_at' => now(),
         ]);
 
-        $petugasUser = User::create([
+        // === Akun read-only baru ===
+        User::create([
+            'name' => 'Kepala Unit SD',
+            'email' => 'kepala.sd@sipesa.test',
+            'password' => Hash::make('password'),
+            'role_id' => $kepalaUnit->id,
+            'unit_id' => $sd->id,
+            'no_telepon' => '081200000010',
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'name' => 'Kepala Unit SMP',
+            'email' => 'kepala.smp@sipesa.test',
+            'password' => Hash::make('password'),
+            'role_id' => $kepalaUnit->id,
+            'unit_id' => $smp->id,
+            'no_telepon' => '081200000011',
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'name' => 'Kepala Pusat',
+            'email' => 'kepala.pusat@sipesa.test',
+            'password' => Hash::make('password'),
+            'role_id' => $kepalaPusat->id,
+            'no_telepon' => '081200000020',
+            'email_verified_at' => now(),
+        ]);
+        // === END read-only ===
+
+        User::create([
             'name' => 'Petugas 1',
             'email' => 'petugas@sipesa.test',
             'password' => Hash::make('password'),
             'role_id' => $petugas->id,
+            'no_telepon' => '081200000003',
+            'email_verified_at' => now(),
+        ]);
+
+        User::create([
+            'name' => 'Petugas 2',
+            'email' => 'petugas2@sipesa.test',
+            'password' => Hash::make('password'),
+            'role_id' => $petugas->id,
+            'no_telepon' => '081200000004',
             'email_verified_at' => now(),
         ]);
 
@@ -59,27 +144,60 @@ class DatabaseSeeder extends Seeder
             'email' => 'siswa@sipesa.test',
             'password' => Hash::make('password'),
             'role_id' => $siswa->id,
+            'unit_id' => $sd->id,
+            'no_telepon' => '081200000005',
             'email_verified_at' => now(),
         ]);
 
-        // Trash Bins for each unit
+        // =========================================================
+        // TRASH BINS — contoh tong sampah per unit dengan koordinat
+        // =========================================================
         $units = [$sd, $smp, $sma, $tk, $btm, $sumart, $umci];
         $statuses = ['kosong', 'setengah_penuh', 'penuh', 'sudah_diangkut'];
-        $jenisList = ['organik', 'anorganik', 'b3'];
+        $jenisList = ['organik', 'anorganik'];
 
         foreach ($units as $i => $unit) {
             $numBins = rand(3, 6);
             for ($j = 1; $j <= $numBins; $j++) {
+                // Tinggi tong realistis: 60-120 cm
+                $tinggi = rand(60, 120);
+
+                // Persentase kepenuhan disesuaikan status
+                $status = $statuses[array_rand($statuses)];
+                $persen = match ($status) {
+                    'kosong' => rand(0, 40),
+                    'setengah_penuh' => rand(41, 75),
+                    'penuh' => rand(76, 100),
+                    'sudah_diangkut' => 0,
+                    default => rand(0, 100),
+                };
+
                 TrashBin::create([
                     'kode' => strtoupper(substr($unit->jenis, 0, 2)) . '-' . str_pad($i + 1, 2, '0', STR_PAD_LEFT) . str_pad($j, 2, '0', STR_PAD_LEFT),
                     'nama' => 'Tong ' . $unit->nama . ' #' . $j,
                     'unit_id' => $unit->id,
                     'lokasi' => $unit->nama . ' - Area ' . chr(64 + $j),
                     'jenis_sampah' => $jenisList[array_rand($jenisList)],
-                    'status' => $statuses[array_rand($statuses)],
+                    'tinggi_tong_cm' => $tinggi,
+                    'persentase_kepenuhan' => $persen,
+                    'last_sensor_at' => rand(0, 1) ? now()->subMinutes(rand(1, 30)) : null,
+                    'status' => $status,
+                    // Koordinat dummy di sekitar Cileungsi (kampus)
+                    'latitude' => -6.374672 + ($i * 0.0008) + ($j * 0.0001),
+                    'longitude' => 106.924831 + ($i * 0.0008) + ($j * 0.0001),
                     'keterangan' => 'Tong sampah otomatis terdata',
                 ]);
             }
         }
+
+        // =========================================================
+        // SEEDER MODUL BARU (IoT, Sensor, Jadwal, Laporan Publik)
+        // =========================================================
+        $this->call([
+            IotDeviceSeeder::class,
+            SensorLogSeeder::class,
+            PickupScheduleSeeder::class,
+            PublicReportSeeder::class,
+        ]);
     }
 }

@@ -245,8 +245,8 @@ export default function SuperAdmin({
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     {/* Bar Chart: Sampah per Unit */}
-                    <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
-                        <h3 className="text-sm font-semibold text-[#111827] mb-4">
+                    <div className="rounded-xl bg-white border border-cloud-ash p-5">
+                        <h3 className="text-sm font-semibold text-earth-heading mb-4">
                             Sampah per Unit
                         </h3>
                         {barChartData ? (
@@ -267,8 +267,8 @@ export default function SuperAdmin({
                     </div>
 
                     {/* Line Chart: Tren Pengangkutan */}
-                    <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
-                        <h3 className="text-sm font-semibold text-[#111827] mb-4">
+                    <div className="rounded-xl bg-white border border-cloud-ash p-5">
+                        <h3 className="text-sm font-semibold text-earth-heading mb-4">
                             Tren Pengangkutan 30 Hari
                         </h3>
                         {lineChartData ? (
@@ -290,13 +290,13 @@ export default function SuperAdmin({
                 </div>
 
                 {/* Tong Penuh Saat Ini */}
-                <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
+                <div className="rounded-xl bg-white border border-cloud-ash p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-[#111827]">Tong Penuh Saat Ini</h3>
+                        <h3 className="text-sm font-semibold text-earth-heading">Tong Penuh Saat Ini</h3>
                         {tongPenuh && tongPenuh.length > 0 && (
                             <Link
                                 href={route('admin.trash-bins.index')}
-                                className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                             >
                                 Kelola Tong
                             </Link>
@@ -308,27 +308,27 @@ export default function SuperAdmin({
                             <div className="hidden lg:block overflow-x-auto">
                                 <table className="min-w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-[#e5e7eb] text-left">
-                                            <th className="pb-3 pr-4 text-xs font-medium text-[#6b7280]">Kode</th>
-                                            <th className="pb-3 pr-4 text-xs font-medium text-[#6b7280]">Nama</th>
-                                            <th className="pb-3 pr-4 text-xs font-medium text-[#6b7280]">Unit</th>
-                                            <th className="pb-3 pr-4 text-xs font-medium text-[#6b7280]">Status</th>
-                                            <th className="pb-3 text-xs font-medium text-[#6b7280]">Aksi</th>
+                                        <tr className="border-b border-cloud-ash text-left">
+                                            <th className="pb-3 pr-4 text-xs font-medium text-muted-earth">Kode</th>
+                                            <th className="pb-3 pr-4 text-xs font-medium text-muted-earth">Nama</th>
+                                            <th className="pb-3 pr-4 text-xs font-medium text-muted-earth">Unit</th>
+                                            <th className="pb-3 pr-4 text-xs font-medium text-muted-earth">Status</th>
+                                            <th className="pb-3 text-xs font-medium text-muted-earth">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#f3f4f6]">
+                                    <tbody className="divide-y divide-river-stone">
                                         {tongPenuh.map((item, i) => (
-                                            <tr key={i} className="hover:bg-[#f9fafb] transition">
-                                                <td className="py-3 pr-4 text-[#111827] font-medium">{item.kode}</td>
-                                                <td className="py-3 pr-4 text-[#374151]">{item.nama}</td>
-                                                <td className="py-3 pr-4 text-[#6b7280]">{item.unit?.nama}</td>
+                                            <tr key={i} className="hover:bg-warm-chalk transition">
+                                                <td className="py-3 pr-4 text-earth-heading font-medium">{item.kode}</td>
+                                                <td className="py-3 pr-4 text-grounded-charcoal">{item.nama}</td>
+                                                <td className="py-3 pr-4 text-muted-earth">{item.unit?.nama}</td>
                                                 <td className="py-3 pr-4">
                                                     <StatusBadge status={item.status || 'penuh'} type="trash" />
                                                 </td>
                                                 <td className="py-3">
                                                     <Link
                                                         href={route('admin.trash-bins.index')}
-                                                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[#16a34a] bg-[#dcfce7] hover:bg-[#bbf7d0] transition"
+                                                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-100 hover:bg-primary-200 transition"
                                                     >
                                                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
@@ -346,18 +346,18 @@ export default function SuperAdmin({
                             {/* Mobile cards */}
                             <div className="lg:hidden space-y-3">
                                 {tongPenuh.map((item, i) => (
-                                    <div key={i} className="rounded-xl border border-[#e5e7eb] p-4 bg-white hover:border-[#d1d5db] transition">
+                                    <div key={i} className="rounded-xl border border-cloud-ash p-4 bg-white hover:border-muted-earth transition">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-semibold text-[#111827]">{item.nama}</p>
-                                                <p className="text-xs text-[#6b7280] mt-0.5">{item.kode} · {item.unit?.nama}</p>
+                                                <p className="text-sm font-semibold text-earth-heading">{item.nama}</p>
+                                                <p className="text-xs text-muted-earth mt-0.5">{item.kode} · {item.unit?.nama}</p>
                                                 <div className="mt-2">
                                                     <StatusBadge status={item.status || 'penuh'} type="trash" />
                                                 </div>
                                             </div>
                                             <Link
                                                 href={route('admin.trash-bins.index')}
-                                                className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[#16a34a] bg-[#dcfce7] hover:bg-[#bbf7d0] transition shrink-0"
+                                                className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-100 hover:bg-primary-200 transition shrink-0"
                                             >
                                                 Detail
                                             </Link>
@@ -380,13 +380,13 @@ export default function SuperAdmin({
                 </div>
 
                 {/* Aduan Terbaru */}
-                <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
+                <div className="rounded-xl bg-white border border-cloud-ash p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-[#111827]">Aduan Terbaru</h3>
+                        <h3 className="text-sm font-semibold text-earth-heading">Aduan Terbaru</h3>
                         {aduanTerbaru && aduanTerbaru.length > 0 && (
                             <Link
                                 href={route('admin.complaints.index')}
-                                className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                             >
                                 Lihat Semua
                             </Link>
@@ -395,15 +395,15 @@ export default function SuperAdmin({
                     {aduanTerbaru && aduanTerbaru.length > 0 ? (
                         <div className="space-y-2">
                             {aduanTerbaru.map((item, i) => (
-                                <div key={i} className="flex items-start gap-3 rounded-xl border border-[#e5e7eb] p-3 transition hover:border-[#d1d5db]">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fef9c3] text-[#a16207]">
+                                <div key={i} className="flex items-start gap-3 rounded-xl border border-cloud-ash p-3 transition hover:border-muted-earth">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-700">
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                                         </svg>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-[#111827] truncate">{item.judul}</p>
-                                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[#6b7280]">
+                                        <p className="text-sm font-medium text-earth-heading truncate">{item.judul}</p>
+                                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-earth">
                                             {item.pelapor && <span>oleh {item.pelapor}</span>}
                                             <span>{item.created_at || item.tanggal}</span>
                                         </div>
@@ -426,10 +426,10 @@ export default function SuperAdmin({
                 </div>
 
                 {/* Aktivitas Terbaru */}
-                <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
-                    <h3 className="text-sm font-semibold text-[#111827] mb-4">Aktivitas Terbaru</h3>
+                <div className="rounded-xl bg-white border border-cloud-ash p-5">
+                    <h3 className="text-sm font-semibold text-earth-heading mb-4">Aktivitas Terbaru</h3>
                     {aktivitasTerbaru && aktivitasTerbaru.length > 0 ? (
-                        <div className="divide-y divide-[#f3f4f6] -mx-1">
+                        <div className="divide-y divide-river-stone -mx-1">
                             {aktivitasTerbaru.map((item, i) => {
                                 const tipe = (item.tipe || '').toLowerCase();
                                 const badgeClass = tipeAktivitasMap[tipe] || 'bg-gray-100 text-gray-700';
@@ -439,8 +439,8 @@ export default function SuperAdmin({
                                         <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClass}`}>
                                             {badgeLabel}
                                         </span>
-                                        <span className="flex-1 min-w-0 text-sm text-[#374151] truncate">{item.deskripsi}</span>
-                                        <span className="shrink-0 text-xs text-[#9ca3af]">{timeAgo(item.created_at)}</span>
+                                        <span className="flex-1 min-w-0 text-sm text-grounded-charcoal truncate">{item.deskripsi}</span>
+                                        <span className="shrink-0 text-xs text-muted-earth/70">{timeAgo(item.created_at)}</span>
                                     </div>
                                 );
                             })}

@@ -167,7 +167,7 @@ export default function AppLayout({ header, children }) {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen bg-warm-chalk">
             {/* Mobile sidebar overlay */}
             {sidebarOpen && (
                 <div
@@ -178,12 +178,12 @@ export default function AppLayout({ header, children }) {
 
             {/* Sidebar - Desktop: fixed, Mobile: slide over */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-green-700 to-green-900 text-white transition-transform duration-300 ease-out lg:sticky lg:translate-x-0 ${
+                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-primary-700 text-white transition-transform duration-300 ease-out lg:sticky lg:translate-x-0 ${
                     sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 {/* Brand */}
-                <div className="flex h-16 shrink-0 items-center gap-3 border-b border-green-600 px-4">
+                <div className="flex h-16 shrink-0 items-center gap-3 border-b border-primary-600 px-4">
                     <Link href="/dashboard" className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
                             <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -193,13 +193,13 @@ export default function AppLayout({ header, children }) {
                     </Link>
                     <div>
                         <p className="text-sm font-semibold">SiPeSa</p>
-                        <p className="text-xs text-green-200 capitalize">{role.replace('_', ' ')}</p>
+                        <p className="text-xs text-primary-200 capitalize">{role.replace('_', ' ')}</p>
                     </div>
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto px-3 py-4">
-                    <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-green-300">Menu Utama</p>
+                    <p className="mb-2 px-3 text-xs font-medium text-primary-200">Menu utama</p>
                     <ul className="space-y-0.5">
                         {navItems.map((item) => (
                             <li key={item.label}>
@@ -207,8 +207,8 @@ export default function AppLayout({ header, children }) {
                                     href={route(item.route)}
                                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                                         isActive(item.route)
-                                            ? 'bg-green-800 text-white'
-                                            : 'text-green-100 hover:bg-green-700'
+                                            ? 'bg-primary-800 text-white'
+                                            : 'text-primary-100 hover:bg-primary-600'
                                     }`}
                                 >
                                     <span className="shrink-0">{iconMap[item.icon]}</span>
@@ -220,12 +220,12 @@ export default function AppLayout({ header, children }) {
                 </nav>
 
                 {/* Logout */}
-                <div className="shrink-0 border-t border-green-600 p-3">
+                <div className="shrink-0 border-t border-primary-600 p-3">
                     <Link
                         href={route('logout')}
                         method="post"
                         as="button"
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-green-100 transition-all duration-150 hover:bg-green-700"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary-100 transition-all duration-150 hover:bg-primary-600"
                     >
                         <span className="shrink-0">{iconMap.logout}</span>
                         Keluar
@@ -236,10 +236,10 @@ export default function AppLayout({ header, children }) {
             {/* Main content */}
             <div className="flex flex-1 flex-col min-w-0">
                 {/* Top header bar */}
-                <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 bg-white shadow-sm border-b border-gray-200 px-4 lg:px-6">
+                <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 bg-white border-b border-river-stone px-4 lg:px-6">
                     <button
                         type="button"
-                        className="inline-flex items-center justify-center rounded-xl p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+                        className="inline-flex items-center justify-center rounded-xl p-2 text-muted-earth transition hover:bg-river-stone hover:text-earth-heading lg:hidden"
                         onClick={() => setSidebarOpen(true)}
                     >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -249,9 +249,9 @@ export default function AppLayout({ header, children }) {
 
                     <div className="flex-1 min-w-0">
                         {header ? (
-                            <h1 className="truncate text-base font-semibold text-gray-900">{header}</h1>
+                            <h1 className="truncate text-base font-semibold text-earth-heading">{header}</h1>
                         ) : (
-                            <h1 className="truncate text-base font-semibold text-gray-900">Dasbor</h1>
+                            <h1 className="truncate text-base font-semibold text-earth-heading">Dasbor</h1>
                         )}
                     </div>
 
@@ -261,13 +261,13 @@ export default function AppLayout({ header, children }) {
                             <Dropdown.Trigger>
                                 <button
                                     type="button"
-                                    className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-gray-700 transition hover:bg-gray-100"
+                                    className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-grounded-charcoal transition hover:bg-river-stone"
                                 >
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-xs font-bold text-white">
                                         {user.name.charAt(0).toUpperCase()}
                                     </div>
                                     <span className="hidden sm:inline font-medium">{user.name}</span>
-                                    <svg className="hidden sm:block h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <svg className="hidden sm:block h-4 w-4 text-muted-earth" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                     </svg>
                                 </button>
@@ -295,16 +295,16 @@ export default function AppLayout({ header, children }) {
             </div>
 
             {/* Mobile bottom navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 lg:hidden">
+            <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-river-stone lg:hidden">
                 <div className="flex h-16">
                     {bottomNavItems.slice(0, 5).map((item, index) => (
                         <Link
                             key={index}
                             href={route(item.route)}
-                            className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition ${
+                            className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition duration-150 ease-out ${
                                 isActive(item.route)
-                                    ? 'text-green-700'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                    ? 'text-primary-600'
+                                    : 'text-muted-earth hover:text-grounded-charcoal'
                             }`}
                         >
                             <span className="h-5 w-5">{iconMap[item.icon]}</span>

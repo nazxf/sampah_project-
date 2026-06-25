@@ -3,11 +3,11 @@ import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import EmptyState from '@/Components/EmptyState';
 import { usePage, useForm, router } from '@inertiajs/react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import Swal from 'sweetalert2';
 
-const jenisSampahOptions = ['organik', 'anorganik', 'b3'];
+const jenisSampahOptions = ['organik', 'anorganik'];
 const statusDotColors = {
     kosong: 'bg-green-400',
     setengah_penuh: 'bg-yellow-400',
@@ -19,6 +19,7 @@ export default function Index({ trashBins, filters, units }) {
     const { props: pageProps } = usePage();
     const [modalOpen, setModalOpen] = useState(false);
     const [editItem, setEditItem] = useState(null);
+    const [locationMessage, setLocationMessage] = useState('');
     const [localFilters, setLocalFilters] = useState({
         search: filters?.search || '',
         unit_id: filters?.unit_id || '',
@@ -32,6 +33,8 @@ export default function Index({ trashBins, filters, units }) {
         unit_id: '',
         lokasi: '',
         jenis_sampah: 'organik',
+        latitude: '',
+        longitude: '',
         keterangan: '',
     });
 
@@ -54,12 +57,14 @@ export default function Index({ trashBins, filters, units }) {
     const openCreate = () => {
         reset();
         clearErrors();
+        setLocationMessage('');
         setEditItem(null);
         setModalOpen(true);
     };
 
     const openEdit = (item) => {
         clearErrors();
+        setLocationMessage('');
         setEditItem(item);
         setData({
             kode: item.kode || '',
@@ -67,9 +72,34 @@ export default function Index({ trashBins, filters, units }) {
             unit_id: item.unit_id || '',
             lokasi: item.lokasi || '',
             jenis_sampah: item.jenis_sampah || 'organik',
+            latitude: item.latitude ?? '',
+            longitude: item.longitude ?? '',
             keterangan: item.keterangan || '',
         });
         setModalOpen(true);
+    };
+
+    const useCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setLocationMessage('Browser tidak mendukung deteksi lokasi.');
+            return;
+        }
+
+        setLocationMessage('Mengambil lokasi perangkat...');
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setData({
+                    ...data,
+                    latitude: position.coords.latitude.toFixed(7),
+                    longitude: position.coords.longitude.toFixed(7),
+                });
+                setLocationMessage('Koordinat berhasil diisi dari lokasi perangkat.');
+            },
+            () => {
+                setLocationMessage('Izin lokasi ditolak atau lokasi tidak tersedia.');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        );
     };
 
     const handleSubmit = (e) => {
@@ -162,7 +192,6 @@ export default function Index({ trashBins, filters, units }) {
                                 <option value="">Semua Jenis</option>
                                 <option value="organik">Organik</option>
                                 <option value="anorganik">Anorganik</option>
-                                <option value="b3">B3</option>
                             </select>
                         </div>
                     </div>
@@ -212,7 +241,14 @@ export default function Index({ trashBins, filters, units }) {
                                                 <td className="px-5 py-3">
                                                     <StatusBadge status={bin.status} type="trash" />
                                                 </td>
-                                                <td className="px-5 py-3 text-[#9ca3af] max-w-[150px] truncate">{bin.lokasi || '-'}</td>
+                                                <td className="px-5 py-3 text-[#9ca3af] max-w-[180px]">
+                                                    <div className="truncate">{bin.lokasi || '-'}</div>
+                                                    {bin.latitude && bin.longitude && (
+                                                        <div className="mt-0.5 truncate text-[11px] text-[#9ca3af]">
+                                                            {Number(bin.latitude).toFixed(5)}, {Number(bin.longitude).toFixed(5)}
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td className="px-5 py-3 text-right space-x-2">
                                                     <button onClick={() => openEdit(bin)} className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition">Edit</button>
                                                     <button onClick={() => confirmDelete(bin.id)} className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition">Hapus</button>
@@ -247,6 +283,11 @@ export default function Index({ trashBins, filters, units }) {
                                             <span className="text-[#d1d5db]">|</span>
                                             <span className="capitalize">{bin.jenis_sampah || '-'}</span>
                                         </div>
+                                        {bin.latitude && bin.longitude && (
+                                            <p className="text-xs text-[#9ca3af]">
+                                                Koordinat: {Number(bin.latitude).toFixed(5)}, {Number(bin.longitude).toFixed(5)}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -291,7 +332,7 @@ export default function Index({ trashBins, filters, units }) {
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                            <Dialog.Panel className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
                                 <Dialog.Title className="text-base font-semibold text-[#111827] mb-1">
                                     {editItem ? 'Edit Tong Sampah' : 'Tambah Tong Sampah'}
                                 </Dialog.Title>
@@ -352,6 +393,49 @@ export default function Index({ trashBins, filters, units }) {
                                         {errors.lokasi && <p className="mt-1 text-xs text-[#dc2626]">{errors.lokasi}</p>}
                                     </div>
 
+                                    <div className="rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-3">
+                                        <div className="mb-3 flex items-center justify-between gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-[#374151]">Koordinat Tong</label>
+                                                <p className="mt-0.5 text-[11px] text-[#9ca3af]">Dipakai untuk mengurutkan tong terdekat.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={useCurrentLocation}
+                                                className="shrink-0 rounded-full border border-[#16a34a] px-3 py-1.5 text-xs font-medium text-[#16a34a] transition hover:bg-[#dcfce7]"
+                                            >
+                                                Gunakan lokasi saya
+                                            </button>
+                                        </div>
+                                        <div className="grid gap-3 sm:grid-cols-2">
+                                            <div>
+                                                <label className="block text-xs font-medium text-[#6b7280] mb-1">Latitude</label>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    value={data.latitude}
+                                                    onChange={(e) => setData('latitude', e.target.value)}
+                                                    placeholder="-6.2000000"
+                                                    className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                                />
+                                                {errors.latitude && <p className="mt-1 text-xs text-[#dc2626]">{errors.latitude}</p>}
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-[#6b7280] mb-1">Longitude</label>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    value={data.longitude}
+                                                    onChange={(e) => setData('longitude', e.target.value)}
+                                                    placeholder="106.8166667"
+                                                    className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                                />
+                                                {errors.longitude && <p className="mt-1 text-xs text-[#dc2626]">{errors.longitude}</p>}
+                                            </div>
+                                        </div>
+                                        {locationMessage && <p className="mt-2 text-xs text-[#6b7280]">{locationMessage}</p>}
+                                    </div>
+
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <div>
                                             <label className="block text-xs font-medium text-[#374151] mb-1">Jenis Sampah</label>
@@ -362,7 +446,7 @@ export default function Index({ trashBins, filters, units }) {
                                             >
                                                 {jenisSampahOptions.map((j) => (
                                                     <option key={j} value={j} className="capitalize">
-                                                        {j === 'b3' ? 'B3' : j.charAt(0).toUpperCase() + j.slice(1)}
+                                                        {j.charAt(0).toUpperCase() + j.slice(1)}
                                                     </option>
                                                 ))}
                                             </select>

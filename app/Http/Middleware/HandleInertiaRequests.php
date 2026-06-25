@@ -31,7 +31,7 @@ class HandleInertiaRequests extends Middleware
                     'unit_name' => $user->unit?->nama,
                     'no_telepon' => $user->no_telepon,
                     'alamat' => $user->alamat,
-                    'avatar' => $user->avatar,
+                    'avatar' => $user->avatar_url,
                 ] : null,
             ],
             'flash' => [
@@ -40,8 +40,6 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
-            'roles' => fn () => \App\Models\Role::all(),
-            'units' => fn () => \App\Models\Unit::all(),
         ];
     }
 }

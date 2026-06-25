@@ -128,20 +128,20 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                 <div
                     className={`mb-4 rounded-xl px-4 py-3 text-sm font-medium ${
                         flashMsg.includes('berhasil')
-                            ? 'bg-[#dcfce7] text-[#16a34a]'
-                            : 'bg-[#fee2e2] text-[#dc2626]'
+                            ? 'bg-primary-100 text-primary-600'
+                            : 'bg-red-100 text-earth-red'
                     }`}
                 >
                     {flashMsg}
                 </div>
             )}
 
-            <div className="rounded-xl bg-white border border-[#e5e7eb]">
+            <div className="rounded-xl bg-white border border-cloud-ash">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#e5e7eb] px-5 py-4">
+                <div className="flex items-center justify-between border-b border-cloud-ash px-5 py-4">
                     <div>
-                        <h2 className="text-sm font-semibold text-[#111827]">{pageTitle}</h2>
-                        <p className="mt-0.5 text-xs text-[#9ca3af]">
+                        <h2 className="text-sm font-semibold text-earth-heading">{pageTitle}</h2>
+                        <p className="mt-0.5 text-xs text-muted-earth/70">
                             {isAdmin
                                 ? 'Kelola dan tanggapi aduan dari pengguna'
                                 : 'Lihat aduan yang telah kamu kirimkan'}
@@ -150,7 +150,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                     {isSiswa && (
                         <button
                             onClick={openCreate}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d]"
+                            className="inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
                         >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -162,15 +162,15 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
 
                 {/* Status filter tabs (admin only) */}
                 {isAdmin && (
-                    <div className="flex flex-wrap items-center gap-2 border-b border-[#e5e7eb] px-5 py-3">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-cloud-ash px-5 py-3">
                         {statusFilterTabs.map((s) => (
                             <button
                                 key={s}
                                 onClick={() => setFilter(s)}
                                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition capitalize ${
                                     (filters?.status || 'semua') === s
-                                        ? 'bg-[#16a34a] text-white'
-                                        : 'bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]'
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-river-stone text-muted-earth hover:bg-[#e5e7eb]'
                                 }`}
                             >
                                 {s === 'semua' ? 'Semua' : statusLabels[s] || s}
@@ -186,7 +186,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                         <div className="hidden lg:block overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>
-                                    <tr className="border-b border-[#e5e7eb] bg-[#f9fafb] text-xs font-medium text-[#6b7280]">
+                                    <tr className="border-b border-cloud-ash bg-warm-chalk text-xs font-medium text-muted-earth">
                                         <th className="px-5 py-3 w-12">No</th>
                                         <th className="px-5 py-3">Judul</th>
                                         {isAdmin && <th className="px-5 py-3">Pelapor</th>}
@@ -196,28 +196,28 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                         <th className="px-5 py-3 text-right">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#f3f4f6]">
+                                <tbody className="divide-y divide-river-stone">
                                     {complaints.data.map((item, index) => (
-                                        <tr key={item.id} className="hover:bg-[#f9fafb] transition">
-                                            <td className="px-5 py-3 text-[#9ca3af]">
+                                        <tr key={item.id} className="hover:bg-warm-chalk transition">
+                                            <td className="px-5 py-3 text-muted-earth/70">
                                                 {complaints.from + index}
                                             </td>
                                             <td className="px-5 py-3">
-                                                <div className="font-medium text-[#111827]">{item.judul}</div>
-                                                <div className="mt-0.5 text-xs text-[#9ca3af] line-clamp-1">{item.deskripsi}</div>
+                                                <div className="font-medium text-earth-heading">{item.judul}</div>
+                                                <div className="mt-0.5 text-xs text-muted-earth/70 line-clamp-1">{item.deskripsi}</div>
                                             </td>
                                             {isAdmin && (
-                                                <td className="px-5 py-3 text-[#6b7280]">
+                                                <td className="px-5 py-3 text-muted-earth">
                                                     {item.user?.name || '-'}
                                                 </td>
                                             )}
-                                            <td className="px-5 py-3 text-[#6b7280]">
-                                                {item.trash_bin?.kode || (item.trash_bin?.unit?.nama ? `${item.trash_bin.unit.nama} - ${item.trash_bin.kode}` : '-')}
+                                            <td className="px-5 py-3 text-muted-earth">
+                                                {item.trash_bin?.kode || (item.trash_bin?.unit?.nama ? `${item.trash_bin.unit.nama} - ${item.trash_bin.kode}` : 'Aduan umum')}
                                             </td>
                                             <td className="px-5 py-3">
                                                 <StatusBadge status={item.status} type="complaint" />
                                             </td>
-                                            <td className="px-5 py-3 text-[#9ca3af] text-xs">
+                                            <td className="px-5 py-3 text-muted-earth/70 text-xs">
                                                 {item.created_at_formatted || item.created_at}
                                             </td>
                                             <td className="px-5 py-3 text-right">
@@ -225,7 +225,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                                     {isAdmin && (
                                                         <button
                                                             onClick={() => openResponse(item)}
-                                                            className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                                            className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                                                         >
                                                             Tanggapi
                                                         </button>
@@ -242,7 +242,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                                     )}
                                                     <button
                                                         onClick={() => handleDelete(item.id)}
-                                                        className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition"
+                                                        className="text-xs font-medium text-earth-red hover:text-[#b91c1c] transition"
                                                     >
                                                         Hapus
                                                     </button>
@@ -255,35 +255,35 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                         </div>
 
                         {/* Mobile Cards */}
-                        <div className="lg:hidden divide-y divide-[#f3f4f6]">
+                        <div className="lg:hidden divide-y divide-river-stone">
                             {complaints.data.map((item, index) => (
-                                <div key={item.id} className="px-5 py-4 hover:bg-[#f9fafb] transition">
+                                <div key={item.id} className="px-5 py-4 hover:bg-warm-chalk transition">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-[#9ca3af]">#{complaints.from + index}</span>
-                                                <h3 className="text-sm font-semibold text-[#111827]">{item.judul}</h3>
+                                                <span className="text-xs text-muted-earth/70">#{complaints.from + index}</span>
+                                                <h3 className="text-sm font-semibold text-earth-heading">{item.judul}</h3>
                                             </div>
-                                            <p className="mt-1 text-sm text-[#6b7280] line-clamp-2">{item.deskripsi}</p>
-                                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#9ca3af]">
+                                            <p className="mt-1 text-sm text-muted-earth line-clamp-2">{item.deskripsi}</p>
+                                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-earth/70">
                                                 {isAdmin && <span>Pelapor: {item.user?.name || '-'}</span>}
-                                                <span>Tong: {item.trash_bin?.kode || '-'}</span>
+                                                <span>Tong: {item.trash_bin?.kode || 'Aduan umum'}</span>
                                                 <span>{item.created_at_formatted || item.created_at}</span>
                                             </div>
                                             <div className="mt-2 flex items-center gap-2">
                                                 <StatusBadge status={item.status} type="complaint" />
                                                 {item.ditanggapi_oleh && (
-                                                    <span className="text-xs text-[#9ca3af]">
+                                                    <span className="text-xs text-muted-earth/70">
                                                         ditanggapi: {item.ditanggapi_oleh.name || '-'}
                                                     </span>
                                                 )}
                                             </div>
                                             {showTanggapanId === item.id && item.tanggapan && (
                                                 <div className="mt-2 rounded-lg border border-[#dcfce7] bg-[#f0fdf4] px-3 py-2">
-                                                    <p className="text-xs font-medium text-[#16a34a]">Tanggapan:</p>
-                                                    <p className="mt-0.5 text-xs text-[#374151]">{item.tanggapan}</p>
+                                                    <p className="text-xs font-medium text-primary-600">Tanggapan:</p>
+                                                    <p className="mt-0.5 text-xs text-grounded-charcoal">{item.tanggapan}</p>
                                                     {item.ditanggapi_oleh && (
-                                                        <p className="mt-1 text-xs text-[#9ca3af]">
+                                                        <p className="mt-1 text-xs text-muted-earth/70">
                                                             oleh {item.ditanggapi_oleh.name}
                                                         </p>
                                                     )}
@@ -294,7 +294,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                             {isAdmin && (
                                                 <button
                                                     onClick={() => openResponse(item)}
-                                                    className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                                    className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                                                 >
                                                     Tanggapi
                                                 </button>
@@ -311,7 +311,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                             )}
                                             <button
                                                 onClick={() => handleDelete(item.id)}
-                                                className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition"
+                                                className="text-xs font-medium text-earth-red hover:text-[#b91c1c] transition"
                                             >
                                                 Hapus
                                             </button>
@@ -332,17 +332,17 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                             className="border-t border-[#dcfce7] bg-[#f0fdf4] px-5 py-3"
                                         >
                                             <div className="flex items-center gap-2">
-                                                <svg className="h-4 w-4 shrink-0 text-[#16a34a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <svg className="h-4 w-4 shrink-0 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                                                 </svg>
-                                                <span className="text-xs font-semibold text-[#16a34a]">Tanggapan</span>
+                                                <span className="text-xs font-semibold text-primary-600">Tanggapan</span>
                                                 {item.ditanggapi_oleh && (
-                                                    <span className="text-xs text-[#9ca3af]">
+                                                    <span className="text-xs text-muted-earth/70">
                                                         oleh {item.ditanggapi_oleh.name}
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="mt-1 text-sm text-[#374151]">{item.tanggapan}</p>
+                                            <p className="mt-1 text-sm text-grounded-charcoal">{item.tanggapan}</p>
                                         </div>
                                     ))
                             )}
@@ -350,7 +350,7 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
 
                         {/* Pagination */}
                         {complaints.links && complaints.meta && (
-                            <div className="border-t border-[#e5e7eb] px-5 py-3">
+                            <div className="border-t border-cloud-ash px-5 py-3">
                                 <Pagination links={complaints.links} meta={complaints.meta} />
                             </div>
                         )}
@@ -379,19 +379,18 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
             {/* Create Complaint Modal (Siswa) */}
             <Modal show={createModalOpen} onClose={() => setCreateModalOpen(false)} maxWidth="lg">
                 <form onSubmit={handleCreate} className="p-6" encType="multipart/form-data">
-                    <h3 className="text-base font-semibold text-[#111827] mb-4">Buat Aduan Baru</h3>
+                    <h3 className="text-base font-semibold text-earth-heading mb-4">Buat Aduan Baru</h3>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">
                                 Tong Sampah
                             </label>
                             <select
                                 value={createForm.data.trash_bin_id}
                                 onChange={(e) => createForm.setData('trash_bin_id', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
-                                required
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             >
-                                <option value="">Pilih tong sampah</option>
+                                <option value="">Aduan umum / tidak terkait tong tertentu</option>
                                 {filteredBins.map((bin) => (
                                     <option key={bin.id} value={bin.id}>
                                         {bin.kode} - {bin.lokasi || bin.unit?.nama || '-'} ({bin.status === 'penuh' ? 'Penuh' : 'Setengah Penuh'})
@@ -399,65 +398,65 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
                                 ))}
                             </select>
                             {filteredBins.length === 0 && (
-                                <p className="mt-1 text-xs text-[#9ca3af]">
-                                    Tidak ada tong sampah yang penuh atau setengah penuh saat ini.
+                                <p className="mt-1 text-xs text-muted-earth/70">
+                                    Tidak ada tong sampah yang penuh atau setengah penuh saat ini. Kamu tetap bisa mengirim aduan umum.
                                 </p>
                             )}
                             {createForm.errors.trash_bin_id && (
-                                <p className="mt-1 text-xs text-[#dc2626]">{createForm.errors.trash_bin_id}</p>
+                                <p className="mt-1 text-xs text-earth-red">{createForm.errors.trash_bin_id}</p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Judul</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Judul</label>
                             <input
                                 type="text"
                                 value={createForm.data.judul}
                                 onChange={(e) => createForm.setData('judul', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                                 required
                             />
                             {createForm.errors.judul && (
-                                <p className="mt-1 text-xs text-[#dc2626]">{createForm.errors.judul}</p>
+                                <p className="mt-1 text-xs text-earth-red">{createForm.errors.judul}</p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Deskripsi</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Deskripsi</label>
                             <textarea
                                 value={createForm.data.deskripsi}
                                 onChange={(e) => createForm.setData('deskripsi', e.target.value)}
                                 rows={4}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                                 required
                             />
                             {createForm.errors.deskripsi && (
-                                <p className="mt-1 text-xs text-[#dc2626]">{createForm.errors.deskripsi}</p>
+                                <p className="mt-1 text-xs text-earth-red">{createForm.errors.deskripsi}</p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Foto (opsional)</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Foto (opsional)</label>
                             <input
                                 type="file"
                                 accept="image/*"
                                 onChange={(e) => createForm.setData('foto', e.target.files[0])}
-                                className="w-full text-sm text-[#6b7280] file:mr-3 file:rounded-lg file:border-0 file:bg-[#f3f4f6] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[#374151] hover:file:bg-[#e5e7eb]"
+                                className="w-full text-sm text-muted-earth file:mr-3 file:rounded-lg file:border-0 file:bg-river-stone file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-grounded-charcoal hover:file:bg-[#e5e7eb]"
                             />
                             {createForm.errors.foto && (
-                                <p className="mt-1 text-xs text-[#dc2626]">{createForm.errors.foto}</p>
+                                <p className="mt-1 text-xs text-earth-red">{createForm.errors.foto}</p>
                             )}
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#e5e7eb]">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cloud-ash">
                         <button
                             type="button"
                             onClick={() => setCreateModalOpen(false)}
-                            className="rounded-full px-4 py-2 text-sm font-medium text-[#374151] transition hover:bg-[#f3f4f6]"
+                            className="rounded-full px-4 py-2 text-sm font-medium text-grounded-charcoal transition hover:bg-river-stone"
                         >
                             Batal
                         </button>
                         <button
                             type="submit"
                             disabled={createForm.processing}
-                            className="rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d] disabled:opacity-50"
+                            className="rounded-full bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700 disabled:opacity-50"
                         >
                             Kirim Aduan
                         </button>
@@ -468,61 +467,61 @@ export default function ComplaintsIndex({ complaints, filters, trashBins }) {
             {/* Response Modal (Admin) */}
             <Modal show={responseModalOpen} onClose={() => setResponseModalOpen(false)} maxWidth="lg">
                 <form onSubmit={handleResponse} className="p-6">
-                    <h3 className="text-base font-semibold text-[#111827] mb-1">Tanggapi Aduan</h3>
+                    <h3 className="text-base font-semibold text-earth-heading mb-1">Tanggapi Aduan</h3>
                     {responseItem && (
-                        <div className="mb-4 rounded-lg bg-[#f3f4f6] p-3">
-                            <p className="text-sm font-medium text-[#111827]">{responseItem.judul}</p>
-                            <p className="mt-1 text-xs text-[#6b7280]">{responseItem.deskripsi}</p>
-                            <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-[#9ca3af]">
+                        <div className="mb-4 rounded-lg bg-river-stone p-3">
+                            <p className="text-sm font-medium text-earth-heading">{responseItem.judul}</p>
+                            <p className="mt-1 text-xs text-muted-earth">{responseItem.deskripsi}</p>
+                            <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted-earth/70">
                                 <span>Pelapor: {responseItem.user?.name || '-'}</span>
-                                <span>Tong: {responseItem.trash_bin?.kode || '-'}</span>
+                                <span>Tong: {responseItem.trash_bin?.kode || 'Aduan umum'}</span>
                             </div>
                             {responseItem.tanggapan && (
                                 <div className="mt-2 rounded-lg border border-[#dcfce7] bg-[#f0fdf4] px-3 py-2">
-                                    <p className="text-xs font-medium text-[#16a34a]">Tanggapan sebelumnya:</p>
-                                    <p className="mt-0.5 text-xs text-[#374151]">{responseItem.tanggapan}</p>
+                                    <p className="text-xs font-medium text-primary-600">Tanggapan sebelumnya:</p>
+                                    <p className="mt-0.5 text-xs text-grounded-charcoal">{responseItem.tanggapan}</p>
                                 </div>
                             )}
                         </div>
                     )}
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Status</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Status</label>
                             <select
                                 value={responseForm.data.status}
                                 onChange={(e) => responseForm.setData('status', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             >
                                 <option value="diproses">Diproses</option>
                                 <option value="selesai">Selesai</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Tanggapan</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Tanggapan</label>
                             <textarea
                                 value={responseForm.data.tanggapan}
                                 onChange={(e) => responseForm.setData('tanggapan', e.target.value)}
                                 rows={4}
                                 required
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             />
                             {responseForm.errors.tanggapan && (
-                                <p className="mt-1 text-xs text-[#dc2626]">{responseForm.errors.tanggapan}</p>
+                                <p className="mt-1 text-xs text-earth-red">{responseForm.errors.tanggapan}</p>
                             )}
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#e5e7eb]">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cloud-ash">
                         <button
                             type="button"
                             onClick={() => setResponseModalOpen(false)}
-                            className="rounded-full px-4 py-2 text-sm font-medium text-[#374151] transition hover:bg-[#f3f4f6]"
+                            className="rounded-full px-4 py-2 text-sm font-medium text-grounded-charcoal transition hover:bg-river-stone"
                         >
                             Batal
                         </button>
                         <button
                             type="submit"
                             disabled={responseForm.processing}
-                            className="rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d] disabled:opacity-50"
+                            className="rounded-full bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700 disabled:opacity-50"
                         >
                             Simpan Tanggapan
                         </button>

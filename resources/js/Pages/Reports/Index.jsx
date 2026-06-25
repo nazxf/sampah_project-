@@ -23,9 +23,10 @@ const tipeLabels = {
     bulanan: 'Bulanan',
 };
 
-export default function ReportsIndex({ reports, filters, units }) {
+export default function ReportsIndex({ reports, summary, filters, units }) {
     const { props } = usePage();
     const user = props.auth.user;
+    const canWrite = user?.role === 'super_admin' || user?.role === 'admin_unit';
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editItem, setEditItem] = useState(null);
@@ -130,7 +131,7 @@ export default function ReportsIndex({ reports, filters, units }) {
     const summaryCards = [
         {
             title: 'Total Tong Penuh',
-            value: reports?.summary?.total_tong_penuh || 0,
+            value: summary?.total_tong_penuh || 0,
             color: 'red',
             icon: (
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -140,7 +141,7 @@ export default function ReportsIndex({ reports, filters, units }) {
         },
         {
             title: 'Total Pengangkutan',
-            value: reports?.summary?.total_pengangkutan || 0,
+            value: summary?.total_pengangkutan || 0,
             color: 'blue',
             icon: (
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -150,7 +151,7 @@ export default function ReportsIndex({ reports, filters, units }) {
         },
         {
             title: 'Total Aduan',
-            value: reports?.summary?.total_aduan || 0,
+            value: summary?.total_aduan || 0,
             color: 'yellow',
             icon: (
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -160,7 +161,7 @@ export default function ReportsIndex({ reports, filters, units }) {
         },
         {
             title: 'Total Laporan',
-            value: reports?.summary?.total_laporan || reports?.total || 0,
+            value: summary?.total_laporan || reports?.total || 0,
             color: 'indigo',
             icon: (
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -176,8 +177,8 @@ export default function ReportsIndex({ reports, filters, units }) {
                 <div
                     className={`mb-4 rounded-xl px-4 py-3 text-sm font-medium ${
                         flashMsg.includes('berhasil')
-                            ? 'bg-[#dcfce7] text-[#16a34a]'
-                            : 'bg-[#fee2e2] text-[#dc2626]'
+                            ? 'bg-[#dcfce7] text-primary-600'
+                            : 'bg-[#fee2e2] text-earth-red'
                     }`}
                 >
                     {flashMsg}
@@ -185,7 +186,7 @@ export default function ReportsIndex({ reports, filters, units }) {
             )}
 
             {/* Summary Stats Cards */}
-            {reports?.summary && (
+            {summary && (
                 <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {summaryCards.map((card, i) => (
                         <StatCard
@@ -199,28 +200,30 @@ export default function ReportsIndex({ reports, filters, units }) {
                 </div>
             )}
 
-            <div className="rounded-xl bg-white border border-[#e5e7eb]">
+            <div className="rounded-xl bg-white border border-cloud-ash">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#e5e7eb] px-5 py-4">
+                <div className="flex items-center justify-between border-b border-cloud-ash px-5 py-4">
                     <div>
-                        <h2 className="text-sm font-semibold text-[#111827]">Daftar Laporan</h2>
-                        <p className="mt-0.5 text-xs text-[#9ca3af]">
+                        <h2 className="text-sm font-semibold text-earth-heading">Daftar Laporan</h2>
+                        <p className="mt-0.5 text-xs text-muted-earth/70">
                             Laporan harian, mingguan, dan bulanan
                         </p>
                     </div>
-                    <button
-                        onClick={openCreate}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d]"
-                    >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        Buat Laporan
-                    </button>
+                    {canWrite && (
+                        <button
+                            onClick={openCreate}
+                            className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d]"
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            Buat Laporan
+                        </button>
+                    )}
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-col gap-3 border-b border-[#e5e7eb] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-cloud-ash px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
                         {tipeFilterTabs.map((t) => (
                             <button
@@ -229,7 +232,7 @@ export default function ReportsIndex({ reports, filters, units }) {
                                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition capitalize ${
                                     (filters?.tipe || 'semua') === t
                                         ? 'bg-[#16a34a] text-white'
-                                        : 'bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]'
+                                        : 'bg-river-stone text-muted-earth hover:bg-[#e5e7eb]'
                                 }`}
                             >
                                 {t}
@@ -240,7 +243,7 @@ export default function ReportsIndex({ reports, filters, units }) {
                         <select
                             value={filters?.unit_id || ''}
                             onChange={(e) => setUnitFilter(e.target.value)}
-                            className="rounded-lg border border-[#d1d5db] px-3 py-1.5 text-xs text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                            className="rounded-lg border border-[#d1d5db] px-3 py-1.5 text-xs text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                         >
                             <option value="">Semua Unit</option>
                             {units.map((u) => (
@@ -259,7 +262,7 @@ export default function ReportsIndex({ reports, filters, units }) {
                         <div className="hidden lg:block overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>
-                                    <tr className="border-b border-[#e5e7eb] bg-[#f9fafb] text-xs font-medium text-[#6b7280]">
+                                    <tr className="border-b border-cloud-ash bg-warm-chalk text-xs font-medium text-muted-earth">
                                         <th className="px-5 py-3 w-12">No</th>
                                         <th className="px-5 py-3">Judul</th>
                                         <th className="px-5 py-3">Tipe</th>
@@ -269,15 +272,15 @@ export default function ReportsIndex({ reports, filters, units }) {
                                         <th className="px-5 py-3 text-right">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#f3f4f6]">
+                                <tbody className="divide-y divide-river-stone">
                                     {reports.data.map((item, index) => (
-                                        <tr key={item.id} className="hover:bg-[#f9fafb] transition">
-                                            <td className="px-5 py-3 text-[#9ca3af]">
+                                        <tr key={item.id} className="hover:bg-warm-chalk transition">
+                                            <td className="px-5 py-3 text-muted-earth/70">
                                                 {reports.from + index}
                                             </td>
                                             <td className="px-5 py-3">
-                                                <div className="font-medium text-[#111827]">{item.judul}</div>
-                                                <div className="mt-0.5 text-xs text-[#9ca3af] line-clamp-1">{item.isi}</div>
+                                                <div className="font-medium text-earth-heading">{item.judul}</div>
+                                                <div className="mt-0.5 text-xs text-muted-earth/70 line-clamp-1">{item.isi}</div>
                                             </td>
                                             <td className="px-5 py-3">
                                                 <span
@@ -288,31 +291,41 @@ export default function ReportsIndex({ reports, filters, units }) {
                                                     {tipeLabels[item.tipe] || item.tipe}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-3 text-[#6b7280]">
+                                            <td className="px-5 py-3 text-muted-earth">
                                                 {item.unit?.nama || '-'}
                                             </td>
-                                            <td className="px-5 py-3 text-[#9ca3af] text-xs">
+                                            <td className="px-5 py-3 text-muted-earth/70 text-xs">
                                                 {item.periode_mulai_formatted || item.periode_mulai || '-'}
                                                 {' - '}
                                                 {item.periode_selesai_formatted || item.periode_selesai || '-'}
                                             </td>
-                                            <td className="px-5 py-3 text-[#6b7280]">
+                                            <td className="px-5 py-3 text-muted-earth">
                                                 {item.total_pengangkutan || 0}
                                             </td>
                                             <td className="px-5 py-3 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => openEdit(item)}
-                                                        className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                                    <Link
+                                                        href={route('admin.reports.show', item.id)}
+                                                        className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                                                     >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(item.id)}
-                                                        className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition"
-                                                    >
-                                                        Hapus
-                                                    </button>
+                                                        Detail
+                                                    </Link>
+                                                    {canWrite && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => openEdit(item)}
+                                                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(item.id)}
+                                                                className="text-xs font-medium text-earth-red hover:text-[#b91c1c] transition"
+                                                            >
+                                                                Hapus
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     <Link
                                                         href={route('admin.reports.pdf', item.id)}
                                                         className="text-xs font-medium text-[#6366f1] hover:text-[#4f46e5] transition"
@@ -320,10 +333,10 @@ export default function ReportsIndex({ reports, filters, units }) {
                                                         PDF
                                                     </Link>
                                                     <Link
-                                                        href={route('admin.reports.excel', item.id)}
+                                                        href={route('admin.reports.csv', item.id)}
                                                         className="text-xs font-medium text-[#059669] hover:text-[#047857] transition"
                                                     >
-                                                        Excel
+                                                        CSV
                                                     </Link>
                                                 </div>
                                             </td>
@@ -334,16 +347,16 @@ export default function ReportsIndex({ reports, filters, units }) {
                         </div>
 
                         {/* Mobile Cards */}
-                        <div className="lg:hidden divide-y divide-[#f3f4f6]">
+                        <div className="lg:hidden divide-y divide-river-stone">
                             {reports.data.map((item, index) => (
-                                <div key={item.id} className="px-5 py-4 hover:bg-[#f9fafb] transition">
+                                <div key={item.id} className="px-5 py-4 hover:bg-warm-chalk transition">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-[#9ca3af]">#{reports.from + index}</span>
-                                                <h3 className="text-sm font-semibold text-[#111827]">{item.judul}</h3>
+                                                <span className="text-xs text-muted-earth/70">#{reports.from + index}</span>
+                                                <h3 className="text-sm font-semibold text-earth-heading">{item.judul}</h3>
                                             </div>
-                                            <p className="mt-1 text-sm text-[#6b7280] line-clamp-2">{item.isi}</p>
+                                            <p className="mt-1 text-sm text-muted-earth line-clamp-2">{item.isi}</p>
                                             <div className="mt-2 flex flex-wrap items-center gap-2">
                                                 <span
                                                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
@@ -352,11 +365,11 @@ export default function ReportsIndex({ reports, filters, units }) {
                                                 >
                                                     {tipeLabels[item.tipe] || item.tipe}
                                                 </span>
-                                                <span className="text-xs text-[#9ca3af]">
+                                                <span className="text-xs text-muted-earth/70">
                                                     {item.unit?.nama || '-'}
                                                 </span>
                                             </div>
-                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-[#9ca3af]">
+                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-muted-earth/70">
                                                 <span>
                                                     {item.periode_mulai_formatted || item.periode_mulai || '-'}
                                                     {' - '}
@@ -368,17 +381,27 @@ export default function ReportsIndex({ reports, filters, units }) {
                                         </div>
                                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                                             <button
-                                                onClick={() => openEdit(item)}
-                                                className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                                onClick={() => router.get(route('admin.reports.show', item.id))}
+                                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                                             >
-                                                Edit
+                                                Detail
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition"
-                                            >
-                                                Hapus
-                                            </button>
+                                            {canWrite && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openEdit(item)}
+                                                        className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className="text-xs font-medium text-earth-red hover:text-[#b91c1c] transition"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </>
+                                            )}
                                             <div className="flex gap-2">
                                                 <Link
                                                     href={route('admin.reports.pdf', item.id)}
@@ -387,10 +410,10 @@ export default function ReportsIndex({ reports, filters, units }) {
                                                     PDF
                                                 </Link>
                                                 <Link
-                                                    href={route('admin.reports.excel', item.id)}
+                                                    href={route('admin.reports.csv', item.id)}
                                                     className="text-xs font-medium text-[#059669] hover:text-[#047857] transition"
                                                 >
-                                                    Excel
+                                                    CSV
                                                 </Link>
                                             </div>
                                         </div>
@@ -401,7 +424,7 @@ export default function ReportsIndex({ reports, filters, units }) {
 
                         {/* Pagination */}
                         {reports.links && reports.meta && (
-                            <div className="border-t border-[#e5e7eb] px-5 py-3">
+                            <div className="border-t border-cloud-ash px-5 py-3">
                                 <Pagination links={reports.links} meta={reports.meta} />
                             </div>
                         )}
@@ -418,7 +441,7 @@ export default function ReportsIndex({ reports, filters, units }) {
                                 ? `Tidak ada laporan dengan tipe "${filters.tipe}"`
                                 : 'Belum ada laporan'
                         }
-                        description="Buat laporan pertama untuk melihat ringkasan data"
+                        description={canWrite ? 'Buat laporan pertama untuk melihat ringkasan data' : 'Belum ada laporan yang dapat ditampilkan'}
                     />
                 )}
             </div>
@@ -426,40 +449,40 @@ export default function ReportsIndex({ reports, filters, units }) {
             {/* Create / Edit Modal */}
             <Modal show={modalOpen} onClose={() => setModalOpen(false)} maxWidth="xl">
                 <form onSubmit={handleSubmit} className="p-6">
-                    <h3 className="text-base font-semibold text-[#111827] mb-4">
+                    <h3 className="text-base font-semibold text-earth-heading mb-4">
                         {editItem ? 'Edit Laporan' : 'Buat Laporan Baru'}
                     </h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Judul</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Judul</label>
                             <input
                                 type="text"
                                 value={data.judul}
                                 onChange={(e) => setData('judul', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                                 required
                             />
-                            {errors.judul && <p className="mt-1 text-xs text-[#dc2626]">{errors.judul}</p>}
+                            {errors.judul && <p className="mt-1 text-xs text-earth-red">{errors.judul}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Tipe</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Tipe</label>
                             <select
                                 value={data.tipe}
                                 onChange={(e) => setData('tipe', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             >
                                 <option value="harian">Harian</option>
                                 <option value="mingguan">Mingguan</option>
                                 <option value="bulanan">Bulanan</option>
                             </select>
-                            {errors.tipe && <p className="mt-1 text-xs text-[#dc2626]">{errors.tipe}</p>}
+                            {errors.tipe && <p className="mt-1 text-xs text-earth-red">{errors.tipe}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Unit</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Unit</label>
                             <select
                                 value={data.unit_id}
                                 onChange={(e) => setData('unit_id', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             >
                                 <option value="">Semua Unit</option>
                                 {units?.map((u) => (
@@ -468,74 +491,74 @@ export default function ReportsIndex({ reports, filters, units }) {
                                     </option>
                                 ))}
                             </select>
-                            {errors.unit_id && <p className="mt-1 text-xs text-[#dc2626]">{errors.unit_id}</p>}
+                            {errors.unit_id && <p className="mt-1 text-xs text-earth-red">{errors.unit_id}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Periode Mulai</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Periode Mulai</label>
                             <input
                                 type="date"
                                 value={data.periode_mulai}
                                 onChange={(e) => setData('periode_mulai', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             />
-                            {errors.periode_mulai && <p className="mt-1 text-xs text-[#dc2626]">{errors.periode_mulai}</p>}
+                            {errors.periode_mulai && <p className="mt-1 text-xs text-earth-red">{errors.periode_mulai}</p>}
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Periode Selesai</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Periode Selesai</label>
                             <input
                                 type="date"
                                 value={data.periode_selesai}
                                 onChange={(e) => setData('periode_selesai', e.target.value)}
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             />
                             {errors.periode_selesai && (
-                                <p className="mt-1 text-xs text-[#dc2626]">{errors.periode_selesai}</p>
+                                <p className="mt-1 text-xs text-earth-red">{errors.periode_selesai}</p>
                             )}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-xs font-medium text-[#374151] mb-1">Isi Laporan</label>
+                            <label className="block text-xs font-medium text-grounded-charcoal mb-1">Isi Laporan</label>
                             <textarea
                                 value={data.isi}
                                 onChange={(e) => setData('isi', e.target.value)}
                                 rows={6}
                                 placeholder="Tulis isi laporan di sini (mendukung format rich text)..."
-                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
+                                className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-earth-heading focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             />
-                            {errors.isi && <p className="mt-1 text-xs text-[#dc2626]">{errors.isi}</p>}
+                            {errors.isi && <p className="mt-1 text-xs text-earth-red">{errors.isi}</p>}
                         </div>
 
                         {/* Auto-calculated totals display */}
                         {(data.total_tong_penuh || data.total_pengangkutan || data.total_aduan) && (
-                            <div className="sm:col-span-2 rounded-lg bg-[#f3f4f6] p-4">
-                                <p className="text-xs font-medium text-[#374151] mb-2">Ringkasan Otomatis</p>
+                            <div className="sm:col-span-2 rounded-lg bg-river-stone p-4">
+                                <p className="text-xs font-medium text-grounded-charcoal mb-2">Ringkasan Otomatis</p>
                                 <div className="grid grid-cols-3 gap-3">
                                     {data.total_tong_penuh && (
                                         <div>
-                                            <p className="text-xs text-[#9ca3af]">Total Tong Penuh</p>
-                                            <p className="text-sm font-semibold text-[#111827]">{data.total_tong_penuh}</p>
+                                            <p className="text-xs text-muted-earth/70">Total Tong Penuh</p>
+                                            <p className="text-sm font-semibold text-earth-heading">{data.total_tong_penuh}</p>
                                         </div>
                                     )}
                                     {data.total_pengangkutan && (
                                         <div>
-                                            <p className="text-xs text-[#9ca3af]">Total Pengangkutan</p>
-                                            <p className="text-sm font-semibold text-[#111827]">{data.total_pengangkutan}</p>
+                                            <p className="text-xs text-muted-earth/70">Total Pengangkutan</p>
+                                            <p className="text-sm font-semibold text-earth-heading">{data.total_pengangkutan}</p>
                                         </div>
                                     )}
                                     {data.total_aduan && (
                                         <div>
-                                            <p className="text-xs text-[#9ca3af]">Total Aduan</p>
-                                            <p className="text-sm font-semibold text-[#111827]">{data.total_aduan}</p>
+                                            <p className="text-xs text-muted-earth/70">Total Aduan</p>
+                                            <p className="text-sm font-semibold text-earth-heading">{data.total_aduan}</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
                     </div>
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#e5e7eb]">
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cloud-ash">
                         <button
                             type="button"
                             onClick={() => setModalOpen(false)}
-                            className="rounded-full px-4 py-2 text-sm font-medium text-[#374151] transition hover:bg-[#f3f4f6]"
+                            className="rounded-full px-4 py-2 text-sm font-medium text-grounded-charcoal transition hover:bg-river-stone"
                         >
                             Batal
                         </button>

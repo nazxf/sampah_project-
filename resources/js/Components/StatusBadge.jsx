@@ -31,7 +31,7 @@ export default function StatusBadge({ status, type = 'trash' }) {
     const label = labelMap[status] || status;
 
     return (
-        <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}>
+        <span className={`inline-block rounded-full px-4 py-1 text-sm font-medium ${colorClass}`}>
             {label}
         </span>
     );

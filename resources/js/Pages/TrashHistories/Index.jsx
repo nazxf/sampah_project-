@@ -2,15 +2,49 @@ import AppLayout from '@/Layouts/AppLayout';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import EmptyState from '@/Components/EmptyState';
+import TrackingMap from '@/Components/TrackingMap';
 import { usePage, useForm, router } from '@inertiajs/react';
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import Swal from 'sweetalert2';
 
+const hasCoordinates = (bin) => bin?.latitude !== null && bin?.latitude !== undefined && bin?.longitude !== null && bin?.longitude !== undefined;
+
+const calculateDistanceKm = (from, bin) => {
+    if (!from || !hasCoordinates(bin)) return null;
+
+    const toRadians = (value) => (value * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+    const lat1 = Number(from.latitude);
+    const lon1 = Number(from.longitude);
+    const lat2 = Number(bin.latitude);
+    const lon2 = Number(bin.longitude);
+
+    if ([lat1, lon1, lat2, lon2].some((value) => Number.isNaN(value))) return null;
+
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return earthRadiusKm * c;
+};
+
+const formatDistance = (distanceKm) => {
+    if (distanceKm === null || distanceKm === undefined) return 'Jarak tidak tersedia';
+    if (distanceKm < 1) return `${Math.round(distanceKm * 1000)} m`;
+    return `${distanceKm.toFixed(2)} km`;
+};
+
 export default function Index({ histories, trashBins }) {
     const { props: pageProps } = usePage();
-    const userRole = pageProps.auth.user.role;
+    const currentUser = pageProps.auth.user;
+    const userRole = currentUser.role;
     const isAdmin = userRole === 'super_admin' || userRole === 'admin_unit';
+    const isPetugas = userRole === 'petugas';
     const indexRoute = isAdmin ? 'admin.trash-histories.index' : 'petugas.pengangkutan.index';
     const storeRoute = isAdmin ? 'admin.trash-histories.store' : 'petugas.pengangkutan.store';
     const destroyRoute = isAdmin ? 'admin.trash-histories.destroy' : 'petugas.pengangkutan.destroy';
@@ -21,6 +55,10 @@ export default function Index({ histories, trashBins }) {
         end_date: new URLSearchParams(window.location.search).get('end_date') || '',
     });
     const [binSearch, setBinSearch] = useState('');
+    const [userLocation, setUserLocation] = useState(null);
+    const [locationStatus, setLocationStatus] = useState('Mendeteksi lokasi petugas...');
+    const [locationAccuracy, setLocationAccuracy] = useState(null);
+    const [selectedPickupBinId, setSelectedPickupBinId] = useState(filters.trash_bin_id || null);
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         trash_bin_id: '',
@@ -29,6 +67,8 @@ export default function Index({ histories, trashBins }) {
         tanggal: '',
         foto: null,
         catatan: '',
+        latitude_konfirmasi: '',
+        longitude_konfirmasi: '',
     });
 
     useEffect(() => {
@@ -40,6 +80,51 @@ export default function Index({ histories, trashBins }) {
             setData('tanggal', local);
         }
     }, [modalOpen]);
+
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            setLocationStatus('Browser tidak mendukung deteksi lokasi. Daftar tong memakai urutan status.');
+            return;
+        }
+
+        const updateLocation = (position) => {
+            const accuracy = position.coords.accuracy ?? null;
+            const location = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy,
+            };
+            setUserLocation(location);
+            setLocationAccuracy(accuracy);
+            setLocationStatus(
+                accuracy
+                    ? `Lokasi petugas aktif. Akurasi sekitar ${Math.round(accuracy)} m.`
+                    : 'Lokasi petugas aktif. Tong diurutkan dari jarak terdekat.',
+            );
+        };
+
+        const handleLocationError = () => {
+            setLocationStatus('Izin lokasi ditolak atau lokasi tidak tersedia. Daftar tong memakai urutan status.');
+            setLocationAccuracy(null);
+        };
+
+        const watchId = navigator.geolocation.watchPosition(
+            updateLocation,
+            handleLocationError,
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 },
+        );
+
+        return () => {
+            navigator.geolocation.clearWatch(watchId);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!userLocation) return;
+
+        setData('latitude_konfirmasi', userLocation.latitude);
+        setData('longitude_konfirmasi', userLocation.longitude);
+    }, [userLocation]);
 
     const applyFilters = () => {
         const params = {};
@@ -67,37 +152,64 @@ export default function Index({ histories, trashBins }) {
 
     const sortedBins = useMemo(() => {
         if (!filteredBins) return [];
-        return [...filteredBins].sort((a, b) => {
+        return filteredBins.map((bin) => ({
+            ...bin,
+            distance_km: calculateDistanceKm(userLocation, bin),
+        })).sort((a, b) => {
+            if (a.distance_km !== null && b.distance_km !== null) return a.distance_km - b.distance_km;
+            if (a.distance_km !== null) return -1;
+            if (b.distance_km !== null) return 1;
             if (a.status === 'penuh' && b.status !== 'penuh') return -1;
             if (a.status !== 'penuh' && b.status === 'penuh') return 1;
             return 0;
         });
-    }, [filteredBins]);
+    }, [filteredBins, userLocation]);
+
+    const selectedBin = useMemo(
+        () => trashBins?.find((b) => b.id.toString() === data.trash_bin_id.toString()),
+        [trashBins, data.trash_bin_id],
+    );
+    const hasFormConfirmationCoordinates =
+        data.latitude_konfirmasi !== '' &&
+        data.latitude_konfirmasi !== null &&
+        data.latitude_konfirmasi !== undefined &&
+        data.longitude_konfirmasi !== '' &&
+        data.longitude_konfirmasi !== null &&
+        data.longitude_konfirmasi !== undefined;
+    const confirmationLocationRequired = isPetugas && hasCoordinates(selectedBin);
+    const confirmationLocationMissing = confirmationLocationRequired && !hasFormConfirmationCoordinates;
 
     const handleBinSelect = (binId) => {
         const selected = trashBins?.find((b) => b.id.toString() === binId.toString());
+        setSelectedPickupBinId(binId);
         setData({
             ...data,
             trash_bin_id: binId,
             status_sebelum: selected?.status || '',
+            latitude_konfirmasi: userLocation?.latitude ?? data.latitude_konfirmasi,
+            longitude_konfirmasi: userLocation?.longitude ?? data.longitude_konfirmasi,
         });
     };
 
-    const openCreate = () => {
+    const openCreate = (preselectedBin = null) => {
         reset();
         clearErrors();
         const now = new Date();
         const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
             .toISOString()
             .slice(0, 16);
+        const selected = preselectedBin || null;
         setData({
-            trash_bin_id: '',
-            status_sebelum: '',
+            trash_bin_id: selected?.id || '',
+            status_sebelum: selected?.status || '',
             status_sesudah: 'kosong',
             tanggal: local,
             foto: null,
             catatan: '',
+            latitude_konfirmasi: userLocation?.latitude ?? '',
+            longitude_konfirmasi: userLocation?.longitude ?? '',
         });
+        setSelectedPickupBinId(selected?.id || null);
         setBinSearch('');
         setModalOpen(true);
     };
@@ -144,6 +256,20 @@ export default function Index({ histories, trashBins }) {
         }
     };
 
+    const hasConfirmationCoordinates = (history) =>
+        history?.latitude_konfirmasi !== null &&
+        history?.latitude_konfirmasi !== undefined &&
+        history?.longitude_konfirmasi !== null &&
+        history?.longitude_konfirmasi !== undefined;
+
+    const formatMeters = (value) => {
+        if (value === null || value === undefined) return null;
+        return `${Number(value).toFixed(1)} m`;
+    };
+
+    const confirmationMapUrl = (history) =>
+        `https://www.openstreetmap.org/?mlat=${history.latitude_konfirmasi}&mlon=${history.longitude_konfirmasi}#map=18/${history.latitude_konfirmasi}/${history.longitude_konfirmasi}`;
+
     const historyList = histories?.data || [];
 
     return (
@@ -160,9 +286,9 @@ export default function Index({ histories, trashBins }) {
                                 className="w-full rounded-md border border-[#d1d5db] px-3 py-2 text-sm text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             >
                                 <option value="">Semua Tong</option>
-                                {trashBins?.map((bin) => (
+                                {sortedBins?.map((bin) => (
                                     <option key={bin.id} value={bin.id}>
-                                        {bin.kode} - {bin.nama} ({bin.unit?.nama || '-'})
+                                        {bin.kode} - {bin.nama} ({bin.unit?.nama || '-'}) - {formatDistance(bin.distance_km)}
                                     </option>
                                 ))}
                             </select>
@@ -202,6 +328,18 @@ export default function Index({ histories, trashBins }) {
                     </div>
                 </div>
 
+                <TrackingMap
+                    bins={sortedBins.map((bin) => ({
+                        ...bin,
+                        unit_nama: bin.unit?.nama,
+                    }))}
+                    userLocation={userLocation}
+                    selectedBinId={selectedPickupBinId}
+                    onSelectBin={(bin) => openCreate(bin)}
+                    title="Peta Tracking Pengangkutan"
+                    subtitle="Klik titik tong di peta untuk memilih target angkut dan membuka form konfirmasi."
+                />
+
                 {/* Data Header + Add Button */}
                 <div className="rounded-xl bg-white border border-[#e5e7eb]">
                     <div className="flex items-center justify-between border-b border-[#e5e7eb] px-5 py-4">
@@ -210,7 +348,7 @@ export default function Index({ histories, trashBins }) {
                             <p className="mt-0.5 text-xs text-[#9ca3af]">Catatan pengangkutan sampah</p>
                         </div>
                         <button
-                            onClick={openCreate}
+                            onClick={() => openCreate()}
                             className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d]"
                         >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -231,6 +369,7 @@ export default function Index({ histories, trashBins }) {
                                             <th className="px-5 py-3">Tong Sampah</th>
                                             <th className="px-5 py-3">Unit</th>
                                             <th className="px-5 py-3">Petugas</th>
+                                            <th className="px-5 py-3">Lokasi Konfirmasi</th>
                                             <th className="px-5 py-3">Status</th>
                                             <th className="px-5 py-3">Catatan</th>
                                             <th className="px-5 py-3">Foto</th>
@@ -249,6 +388,27 @@ export default function Index({ histories, trashBins }) {
                                                 </td>
                                                 <td className="px-5 py-3 text-[#6b7280]">{h.trash_bin?.unit?.nama || '-'}</td>
                                                 <td className="px-5 py-3 text-[#111827]">{h.user?.name || '-'}</td>
+                                                <td className="px-5 py-3">
+                                                    {hasConfirmationCoordinates(h) ? (
+                                                        <>
+                                                            <a
+                                                                href={confirmationMapUrl(h)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs font-medium text-[#16a34a] hover:text-[#15803d]"
+                                                            >
+                                                                {Number(h.latitude_konfirmasi).toFixed(5)}, {Number(h.longitude_konfirmasi).toFixed(5)}
+                                                            </a>
+                                                            {h.jarak_konfirmasi_meter !== null && h.jarak_konfirmasi_meter !== undefined && (
+                                                                <div className="mt-1 text-xs text-[#6b7280]">
+                                                                    {formatMeters(h.jarak_konfirmasi_meter)}
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-[#d1d5db]">Belum ada</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-5 py-3">
                                                     <div className="flex items-center gap-1.5">
                                                         <StatusBadge status={h.status_sebelum} type="trash" />
@@ -325,6 +485,19 @@ export default function Index({ histories, trashBins }) {
                                         {h.catatan && (
                                             <p className="text-xs text-[#6b7280] line-clamp-2">{h.catatan}</p>
                                         )}
+                                        {hasConfirmationCoordinates(h) && (
+                                            <a
+                                                href={confirmationMapUrl(h)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex text-xs font-medium text-[#16a34a] hover:text-[#15803d]"
+                                            >
+                                                Lokasi konfirmasi: {Number(h.latitude_konfirmasi).toFixed(5)}, {Number(h.longitude_konfirmasi).toFixed(5)}
+                                                {h.jarak_konfirmasi_meter !== null && h.jarak_konfirmasi_meter !== undefined
+                                                    ? ` (${formatMeters(h.jarak_konfirmasi_meter)})`
+                                                    : ''}
+                                            </a>
+                                        )}
                                         {h.foto_url && (
                                             <a
                                                 href={h.foto_url}
@@ -362,7 +535,7 @@ export default function Index({ histories, trashBins }) {
 
             {/* Create Modal */}
             <Transition show={modalOpen}>
-                <Dialog onClose={closeModal} className="relative z-50">
+                <Dialog onClose={closeModal} className="relative z-[2000]">
                     <Transition.Child
                         enter="ease-out duration-200"
                         enterFrom="opacity-0"
@@ -394,6 +567,9 @@ export default function Index({ histories, trashBins }) {
                                     {/* Searchable Bin Select */}
                                     <div>
                                         <label className="block text-xs font-medium text-[#374151] mb-1">Tong Sampah</label>
+                                        <div className="mb-2 rounded-md bg-[#f9fafb] px-3 py-2 text-xs text-[#6b7280]">
+                                            {locationStatus}
+                                        </div>
                                         <div className="relative">
                                             <input
                                                 type="text"
@@ -431,8 +607,19 @@ export default function Index({ histories, trashBins }) {
                                                                 }`}
                                                             >
                                                                 <div className="text-left min-w-0">
-                                                                    <span className="font-medium text-[#111827]">{bin.kode} - {bin.nama}</span>
-                                                                    <span className="ml-2 text-xs text-[#6b7280]">{bin.unit?.nama || '-'}</span>
+                                                                    <div>
+                                                                        <span className="font-medium text-[#111827]">{bin.kode} - {bin.nama}</span>
+                                                                        <span className="ml-2 text-xs text-[#6b7280]">{bin.unit?.nama || '-'}</span>
+                                                                    </div>
+                                                                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
+                                                                        <span>{formatDistance(bin.distance_km)}</span>
+                                                                        <span className="capitalize">{bin.jenis_sampah}</span>
+                                                                        {bin.is_overdue && (
+                                                                            <span className="rounded-full bg-orange-100 px-2 py-0.5 font-medium text-orange-700">
+                                                                                Prioritas 3 hari
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                                 <StatusBadge status={bin.status} type="trash" />
                                                             </button>
@@ -445,6 +632,43 @@ export default function Index({ histories, trashBins }) {
                                         </div>
                                         {errors.trash_bin_id && <p className="mt-1 text-xs text-[#dc2626]">{errors.trash_bin_id}</p>}
                                     </div>
+
+                                    {selectedBin && (
+                                        <div className="rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-3 text-xs text-[#6b7280]">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span>{selectedBin.lokasi || 'Lokasi tidak tersedia'}</span>
+                                                <span className="text-[#d1d5db]">|</span>
+                                                <span>{formatDistance(calculateDistanceKm(userLocation, selectedBin))}</span>
+                                            </div>
+                                            <div className="mt-2 text-[#6b7280]">
+                                                Koordinat konfirmasi:{' '}
+                                                {hasFormConfirmationCoordinates
+                                                    ? `${Number(data.latitude_konfirmasi).toFixed(6)}, ${Number(data.longitude_konfirmasi).toFixed(6)}`
+                                                    : 'belum tersedia'}
+                                            </div>
+                                            {locationAccuracy !== null && (
+                                                <div className="mt-1 text-[#6b7280]">
+                                                    Akurasi lokasi: sekitar {Math.round(locationAccuracy)} m
+                                                </div>
+                                            )}
+                                            {selectedBin.is_overdue && (
+                                                <p className="mt-2 font-medium text-orange-700">
+                                                    Tong anorganik ini sudah lebih dari 3 hari belum diangkut.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {errors.latitude_konfirmasi && (
+                                        <p className="rounded-md bg-red-50 px-3 py-2 text-xs font-medium text-[#dc2626]">
+                                            {errors.latitude_konfirmasi}
+                                        </p>
+                                    )}
+                                    {confirmationLocationMissing && (
+                                        <p className="rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                                            Lokasi petugas wajib aktif untuk tong yang memiliki titik koordinat.
+                                        </p>
+                                    )}
 
                                     {/* Status Sebelum (auto) */}
                                     <div>
@@ -520,7 +744,7 @@ export default function Index({ histories, trashBins }) {
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={processing}
+                                            disabled={processing || confirmationLocationMissing}
                                             className="rounded-full bg-[#16a34a] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#15803d] disabled:opacity-50"
                                         >
                                             {processing ? 'Menyimpan...' : 'Simpan'}

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Complaint extends Model
 {
@@ -17,6 +18,24 @@ class Complaint extends Model
     protected $casts = [
         'ditanggapi_pada' => 'datetime',
     ];
+
+    protected $appends = [
+        'foto_url',
+    ];
+
+    public function getFotoUrlAttribute(): ?string
+    {
+        return $this->foto ? Storage::url($this->foto) : null;
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (Complaint $complaint): void {
+            if ($complaint->foto) {
+                Storage::disk('public')->delete($complaint->foto);
+            }
+        });
+    }
 
     public function user(): BelongsTo
     {

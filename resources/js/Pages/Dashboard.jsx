@@ -12,7 +12,10 @@ export default function Dashboard(props) {
         case 'super_admin':
             return <SuperAdmin {...props} />;
         case 'admin_unit':
+        case 'kepala_unit':
             return <AdminUnit {...props} />;
+        case 'kepala_pusat':
+            return <SuperAdmin {...props} />;
         case 'petugas':
             return <Petugas {...props} />;
         case 'siswa':

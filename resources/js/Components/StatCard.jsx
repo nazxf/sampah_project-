@@ -19,15 +19,15 @@ export default function StatCard({ title, value, icon, color = 'green', subtext,
     ) : null;
 
     return (
-        <div className="rounded-xl bg-white p-5 shadow-sm">
+        <div className="rounded-xl bg-white p-5">
             <div className="flex items-start gap-4">
-                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${colorMap[color] || colorMap.green}`}>
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${colorMap[color] || colorMap.green}`}>
                     {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-500">{title}</p>
+                    <p className="text-sm font-medium text-grounded-charcoal">{title}</p>
                     <div className="flex items-baseline gap-1.5">
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-2xl font-bold text-earth-heading">
                             {typeof value === 'number' ? value.toLocaleString('id-ID') : value}
                         </p>
                         {trend !== undefined && trend !== null && trend !== 0 && (
@@ -38,7 +38,7 @@ export default function StatCard({ title, value, icon, color = 'green', subtext,
                         )}
                     </div>
                     {subtext && (
-                        <p className="mt-0.5 text-xs text-gray-400">{subtext}</p>
+                        <p className="mt-0.5 text-xs text-muted-earth">{subtext}</p>
                     )}
                 </div>
             </div>

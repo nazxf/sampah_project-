@@ -47,16 +47,12 @@ export default function Siswa({
     );
 
     const totalAduan = totalAduanSaya
-        ? totalAduanSaya.reduce((sum, item) => sum + (item.count || item.total || 0), 0)
+        ? Object.values(totalAduanSaya).reduce((sum, val) => sum + (parseInt(val) || 0), 0)
         : (aduanSaya ? aduanSaya.length : 0);
 
-    const aduanDiproses = Array.isArray(totalAduanSaya)
-        ? (totalAduanSaya.find(item => item.status === 'diproses')?.count || 0)
-        : 0;
+    const aduanDiproses = totalAduanSaya?.diproses || 0;
 
-    const aduanSelesai = Array.isArray(totalAduanSaya)
-        ? (totalAduanSaya.find(item => item.status === 'selesai')?.count || 0)
-        : 0;
+    const aduanSelesai = totalAduanSaya?.selesai || 0;
 
     const tipsEdukasi = edukasiList && edukasiList.length > 0 ? edukasiList : [
         {
@@ -84,7 +80,7 @@ export default function Siswa({
                 {/* Quick Action - Lapor Sampah */}
                 <Link
                     href={route('siswa.aduan.index')}
-                    className="flex flex-col items-center rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white shadow-lg shadow-green-200 transition hover:from-green-600 hover:to-green-700 active:scale-[0.98]"
+                    className="flex flex-col items-center rounded-2xl bg-primary-600 p-6 text-white hover:shadow-green-glow transition hover:bg-primary-700 active:scale-[0.98]"
                 >
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 mb-3">
                         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -130,13 +126,13 @@ export default function Siswa({
                 </div>
 
                 {/* Tong Sampah Terdekat */}
-                <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
+                <div className="rounded-xl bg-white border border-cloud-ash p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-[#111827]">Tong Sampah Terdekat</h3>
+                        <h3 className="text-sm font-semibold text-earth-heading">Tong Sampah Terdekat</h3>
                         {hasTongSekitar && (
                             <Link
                                 href={route('siswa.monitoring')}
-                                className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                             >
                                 Lihat Peta
                             </Link>
@@ -153,15 +149,15 @@ export default function Siswa({
                                         className={`rounded-xl border p-4 transition ${
                                             isPenuh
                                                 ? 'border-red-200 bg-red-50 hover:border-red-300 cursor-pointer'
-                                                : 'border-[#e5e7eb] bg-white hover:border-[#d1d5db]'
+                                                : 'border-cloud-ash bg-white hover:border-muted-earth'
                                         }`}
                                     >
                                         <div className="flex items-start gap-3">
                                             <div className={`mt-0.5 h-3 w-3 shrink-0 rounded-full ${dotColor}`} />
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-semibold text-[#111827] truncate">{item.nama}</p>
-                                                <p className="text-xs text-[#6b7280] mt-0.5">{item.unit?.nama}</p>
-                                                <p className="text-xs text-[#9ca3af] mt-0.5 truncate">{item.lokasi}</p>
+                                                <p className="text-sm font-semibold text-earth-heading truncate">{item.nama}</p>
+                                                <p className="text-xs text-muted-earth mt-0.5">{item.unit?.nama}</p>
+                                                <p className="text-xs text-muted-earth/70 mt-0.5 truncate">{item.lokasi}</p>
                                                 <div className="mt-2">
                                                     <StatusBadge status={item.status} type="trash" />
                                                 </div>
@@ -196,13 +192,13 @@ export default function Siswa({
                 </div>
 
                 {/* Aduan Saya */}
-                <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
+                <div className="rounded-xl bg-white border border-cloud-ash p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-[#111827]">Aduan Saya</h3>
+                        <h3 className="text-sm font-semibold text-earth-heading">Aduan Saya</h3>
                         {hasAduan && (
                             <Link
                                 href={route('siswa.aduan.index')}
-                                className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition"
+                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
                             >
                                 Lihat Semua
                             </Link>
@@ -211,20 +207,20 @@ export default function Siswa({
                     {hasAduan ? (
                         <div className="space-y-2">
                             {aduanSaya.map((item, i) => (
-                                <div key={i} className="flex items-start gap-3 rounded-xl border border-[#e5e7eb] p-3 transition hover:border-[#d1d5db]">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f3f4f6] text-[#6b7280]">
+                                <div key={i} className="flex items-start gap-3 rounded-xl border border-cloud-ash p-3 transition hover:border-muted-earth">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-river-stone text-muted-earth">
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                                         </svg>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-[#111827] truncate">{item.judul}</p>
-                                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[#6b7280]">
+                                        <p className="text-sm font-medium text-earth-heading truncate">{item.judul}</p>
+                                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-earth">
                                             <span>{item.created_at || item.tanggal}</span>
                                             {item.lokasi && <span>{item.lokasi}</span>}
                                         </div>
                                         {item.tanggapan && (
-                                            <p className="mt-1 text-xs text-[#9ca3af] italic truncate">
+                                            <p className="mt-1 text-xs text-muted-earth/70 italic truncate">
                                                 &quot;{item.tanggapan}&quot;
                                             </p>
                                         )}
@@ -251,19 +247,19 @@ export default function Siswa({
                 </div>
 
                 {/* Edukasi */}
-                <div className="rounded-xl bg-white border border-[#e5e7eb] p-5">
-                    <h3 className="text-sm font-semibold text-[#111827] mb-4">Edukasi Pengelolaan Sampah</h3>
+                <div className="rounded-xl bg-white border border-cloud-ash p-5">
+                    <h3 className="text-sm font-semibold text-earth-heading mb-4">Edukasi Pengelolaan Sampah</h3>
                     <div className="space-y-4">
                         {tipsEdukasi.map((item, i) => (
-                            <div key={i} className="flex items-start gap-3 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
+                            <div key={i} className="flex items-start gap-3 rounded-xl border border-cloud-ash bg-warm-chalk p-4">
                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
                                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
                                     </svg>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h4 className="text-sm font-semibold text-[#111827]">{item.judul}</h4>
-                                    <p className="mt-1 text-sm text-[#6b7280] leading-relaxed">{item.deskripsi}</p>
+                                    <h4 className="text-sm font-semibold text-earth-heading">{item.judul}</h4>
+                                    <p className="mt-1 text-sm text-muted-earth leading-relaxed">{item.deskripsi}</p>
                                 </div>
                             </div>
                         ))}

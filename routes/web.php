@@ -10,7 +10,6 @@ use App\Http\Controllers\{
     UnitController,
     UserController,
 };
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,8 +17,6 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
     ]);
 });
 
@@ -44,8 +41,8 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         Route::delete('/units/{unit}', [UnitController::class, 'destroy'])->name('units.destroy');
     });
 
-// Admin (Super Admin + Admin Unit) - Management Panel
-Route::middleware(['auth', 'verified', 'admin'])
+// Management Panel (admin write access + kepala read-only access)
+Route::middleware(['auth', 'verified', 'viewer'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -75,7 +72,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::put('/reports/{report}', [ReportController::class, 'update'])->name('reports.update');
         Route::delete('/reports/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
         Route::get('/reports/{report}/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-        Route::get('/reports/{report}/excel', [ReportController::class, 'exportExcel'])->name('reports.excel');
+        Route::get('/reports/{report}/csv', [ReportController::class, 'exportCsv'])->name('reports.csv');
 
         // Users
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -104,7 +101,7 @@ Route::middleware(['auth', 'verified', 'role:petugas,super_admin'])
     });
 
 // Siswa
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'role:siswa'])
     ->prefix('siswa')
     ->name('siswa.')
     ->group(function () {

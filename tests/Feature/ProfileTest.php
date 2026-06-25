@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -77,6 +78,25 @@ class ProfileTest extends TestCase
 
         $this->assertGuest();
         $this->assertNull($user->fresh());
+    }
+
+    public function test_user_avatar_is_deleted_when_account_is_deleted(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('avatars/profile.jpg', 'avatar');
+        $user = User::factory()->create([
+            'avatar' => 'avatars/profile.jpg',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->delete('/profile', [
+                'password' => 'password',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/');
+
+        Storage::disk('public')->assertMissing('avatars/profile.jpg');
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

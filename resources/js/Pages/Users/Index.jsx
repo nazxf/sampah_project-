@@ -12,6 +12,8 @@ import StatCard from '@/Components/StatCard';
 const roleStyles = {
     super_admin: 'bg-red-100 text-red-800',
     admin_unit: 'bg-indigo-100 text-indigo-800',
+    kepala_unit: 'bg-amber-100 text-amber-800',
+    kepala_pusat: 'bg-purple-100 text-purple-800',
     petugas: 'bg-blue-100 text-blue-800',
     siswa: 'bg-green-100 text-green-800',
 };
@@ -19,6 +21,8 @@ const roleStyles = {
 const roleLabels = {
     super_admin: 'Super Admin',
     admin_unit: 'Admin Unit',
+    kepala_unit: 'Kepala Unit',
+    kepala_pusat: 'Kepala Pusat',
     petugas: 'Petugas',
     siswa: 'Siswa',
 };
@@ -55,7 +59,7 @@ export default function UsersIndex({ users, filters, roleList, unitList, stats }
         e.preventDefault();
         const formData = new FormData(e.target);
         const search = formData.get('search');
-        router.get(route('admin.users.index'), { search, ...filters }, { preserveState: true, replace: true });
+        router.get(route('admin.users.index'), { ...filters, search }, { preserveState: true, replace: true });
     };
 
     const setFilter = (key, value) => {
@@ -259,13 +263,13 @@ export default function UsersIndex({ users, filters, roleList, unitList, stats }
                         </form>
                         <div className="flex gap-2">
                             <select
-                                value={filters?.role || ''}
-                                onChange={(e) => setFilter('role', e.target.value)}
+                                value={filters?.role_id || ''}
+                                onChange={(e) => setFilter('role_id', e.target.value)}
                                 className="rounded-lg border border-[#d1d5db] px-3 py-1.5 text-xs text-[#111827] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]"
                             >
                                 <option value="">Semua Role</option>
                                 {roleOptions.map((r) => (
-                                    <option key={r.id || r.name} value={r.name || r}>
+                                    <option key={r.id || r.name} value={r.id || r.name || r}>
                                         {roleLabels[r.name || r] || r.name || r}
                                     </option>
                                 ))}
@@ -322,7 +326,7 @@ export default function UsersIndex({ users, filters, roleList, unitList, stats }
                                                             roleStyles[user.role] || 'bg-gray-100 text-gray-800'
                                                         }`}
                                                     >
-                                                        {roleLabels[user.role] || user.role}
+                                                        {user.role_label || roleLabels[user.role] || user.role}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3">
@@ -373,7 +377,7 @@ export default function UsersIndex({ users, filters, roleList, unitList, stats }
                                                             roleStyles[user.role] || 'bg-gray-100 text-gray-800'
                                                         }`}
                                                     >
-                                                        {roleLabels[user.role] || user.role}
+                                                        {user.role_label || roleLabels[user.role] || user.role}
                                                     </span>
                                                     {user.unit && (
                                                         <span className="inline-flex items-center rounded-full bg-[#f3f4f6] px-2 py-0.5 text-xs font-medium text-[#6b7280]">
@@ -424,7 +428,7 @@ export default function UsersIndex({ users, filters, roleList, unitList, stats }
                                 </svg>
                             }
                             title={
-                                filters?.search || filters?.role || filters?.unit_id
+                                filters?.search || filters?.role_id || filters?.unit_id
                                     ? 'Tidak ada pengguna yang cocok dengan filter'
                                     : 'Belum ada pengguna'
                             }
