@@ -22,10 +22,18 @@ RUN apk add --no-cache \
     unzip \
     git \
     oniguruma-dev \
-    postgresql-dev
+    postgresql-dev \
+    openssl
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring zip gd opcache
+
+# Generate self-signed SSL certificate for HTTPS (required for camera access)
+RUN mkdir -p /etc/nginx/ssl \
+    && openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+       -keyout /etc/nginx/ssl/server.key \
+       -out /etc/nginx/ssl/server.crt \
+       -subj "/C=ID/ST=JawaBarat/L=Cileungsi/O=SiPeSa/CN=129.226.83.33"
 
 # Get Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -52,6 +60,6 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-EXPOSE 80
+EXPOSE 80 443
 
 ENTRYPOINT ["entrypoint.sh"]

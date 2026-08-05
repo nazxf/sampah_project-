@@ -7,12 +7,13 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
+      - "8443:443"
     environment:
       APP_NAME: SiPeSa
       APP_ENV: production
       APP_KEY: ${APP_KEY:-base64:g8y6SkTtn0bRi4qs0R0uZN1I6ckhBtoEesyddDG6DkQ=}
       APP_DEBUG: "false"
-      APP_URL: ${APP_URL:-http://129.226.83.33:8080}
+      APP_URL: ${APP_URL:-https://129.226.83.33:8443}
       APP_TIMEZONE: Asia/Jakarta
       APP_LOCALE: id
       LOG_CHANNEL: stack
