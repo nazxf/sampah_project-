@@ -75,13 +75,15 @@ export default function Scanner() {
     };
 
     const handleScan = (decodedText) => {
+        // Guard against null/undefined from library callbacks
+        if (!decodedText || typeof decodedText !== 'string') return;
+
         // Stop scanning once a QR is found to prevent multiple redirects
         setScanning(false);
         if (html5QrCode.current && html5QrCode.current.isScanning) {
              html5QrCode.current.stop().catch(e => console.error(e));
         }
 
-        // Example URL: http://sipesa.test/lapor/B-12
         // If it's a full URL, redirect directly
         if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
             window.location.href = decodedText;
