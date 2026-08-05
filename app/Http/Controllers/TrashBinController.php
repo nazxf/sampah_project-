@@ -141,6 +141,20 @@ class TrashBinController extends Controller
         return redirect()->back()->with('success', 'Status tempat sampah berhasil diperbarui');
     }
 
+    public function barcode(Request $request, TrashBin $trashBin)
+    {
+        $user = $request->user();
+
+        if ($user->isAdminUnit() && $trashBin->unit_id !== $user->unit_id) {
+            abort(403, 'Anda tidak memiliki akses ke tong sampah ini.');
+        }
+
+        return Inertia::render('TrashBins/Barcode', [
+            'trashBin' => $trashBin->load('unit'),
+            'reportUrl' => route('public-reports.create', ['trashBin' => $trashBin->kode]),
+        ]);
+    }
+
     public function monitor(Request $request)
     {
         $user = $request->user();

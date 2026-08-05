@@ -250,6 +250,7 @@ export default function Index({ trashBins, filters, units }) {
                                                     )}
                                                 </td>
                                                 <td className="px-5 py-3 text-right space-x-2">
+                                                    <a href={route('admin.trash-bins.barcode', bin.id)} className="text-xs font-medium text-[#4f46e5] hover:text-[#3730a3] transition">Cetak Barcode</a>
                                                     <button onClick={() => openEdit(bin)} className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition">Edit</button>
                                                     <button onClick={() => confirmDelete(bin.id)} className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition">Hapus</button>
                                                 </td>
@@ -273,6 +274,7 @@ export default function Index({ trashBins, filters, units }) {
                                                 <p className="text-xs text-[#6b7280]">{bin.unit?.nama || '-'}</p>
                                             </div>
                                             <div className="flex gap-2 shrink-0">
+                                                <a href={route('admin.trash-bins.barcode', bin.id)} className="text-xs font-medium text-[#4f46e5] hover:text-[#3730a3] transition">Barcode</a>
                                                 <button onClick={() => openEdit(bin)} className="text-xs font-medium text-[#16a34a] hover:text-[#15803d] transition">Edit</button>
                                                 <button onClick={() => confirmDelete(bin.id)} className="text-xs font-medium text-[#dc2626] hover:text-[#b91c1c] transition">Hapus</button>
                                             </div>

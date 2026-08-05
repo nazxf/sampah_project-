@@ -31,3 +31,14 @@ Thumbs.db
 .php_cs.cache
 _ide_helper.php
 .phpstorm.meta.php
+
+# Agent files
+.agents/
+.claude/
+.opencode/
+skills-lock.json
+
+# Temporary/output files
+nul
+output/
+tmp/

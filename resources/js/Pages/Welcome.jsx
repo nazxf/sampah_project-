@@ -141,6 +141,7 @@ function Icon({ name, className = 'h-6 w-6' }) {
         trash: (<><path d="M4 7h16" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M6 7l1 14h10l1-14" /><path d="M9 7V4h6v3" /></>),
         truck: (<><path d="M3 7h11v9H3Z" /><path d="M14 10h4l3 3v3h-7Z" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></>),
         alert: (<><path d="M10.3 4.4 2.7 18a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 4.4a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></>),
+        camera: (<><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></>),
         check: (<><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" /></>),
         mail: (<><path d="M4 6h16v12H4Z" /><path d="m4 7 8 6 8-6" /></>),
         pin: (<><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" /><circle cx="12" cy="10" r="2.5" /></>),
@@ -430,9 +431,12 @@ export default function Welcome({ canLogin, canRegister }) {
                                 </a>
                             ))}
                         </nav>
-                        <div className="ml-auto">
+                        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                            <Link href={route('scanner')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-slate-900/25 transition hover:bg-slate-800 active:scale-[0.98]">
+                                <Icon name="camera" className="h-4 w-4" /> Scan QR
+                            </Link>
                             {canLogin && (
-                                <Link href={route('login')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-green-600/25 transition hover:bg-green-700 active:scale-[0.98]">
+                                <Link href={route('login')} className="hidden sm:inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-green-600/25 transition hover:bg-green-700 active:scale-[0.98]">
                                     <Icon name="login" className="h-4 w-4" /> Login
                                 </Link>
                             )}
@@ -457,8 +461,8 @@ export default function Welcome({ canLogin, canRegister }) {
                                     Pantau tong sampah, kelola pengangkutan, tindak lanjuti laporan siswa, dan buat laporan otomatis dalam satu sistem.
                                 </p>
                                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                                    <Link href={primaryHref} className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-green-600/30 transition hover:bg-green-700 hover:shadow-xl hover:shadow-green-600/40 active:scale-[0.98]">
-                                        <Icon name="leaf" className="h-5 w-5" /> Mulai Sekarang
+                                    <Link href={route('scanner')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-green-600/30 transition hover:bg-green-700 hover:shadow-xl hover:shadow-green-600/40 active:scale-[0.98]">
+                                        <Icon name="camera" className="h-5 w-5" /> Scan QR Tong
                                     </Link>
                                     <a href="#alur" className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white/70 px-6 py-3.5 text-sm font-bold text-slate-700 backdrop-blur transition hover:border-green-300 hover:text-green-700 active:scale-[0.98]">
                                         <Icon name="play" className="h-5 w-5" /> Lihat Demo

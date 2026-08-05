@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Activity, Complaint, TrashBin, TrashHistory, Unit, User};
+use App\Models\{Activity, Complaint, Report, TrashBin, TrashHistory, Unit, User};
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -25,17 +25,32 @@ class DashboardController extends Controller
 
     private function superAdminDashboard(): \Inertia\Response
     {
+        $totalUnits = Unit::count();
+        $totalTrashBins = TrashBin::count();
+        $totalUsers = User::count();
+        $totalAduanPending = Complaint::where('status', 'menunggu')->count();
+        $totalDiangkutHariIni = TrashHistory::whereDate('tanggal', today())->count();
+        $totalReports = Report::count();
+
         return Inertia::render('Dashboard/SuperAdmin', [
-            'totalUnits' => Unit::count(),
-            'totalTrashBins' => TrashBin::count(),
-            'totalUsers' => User::count(),
+            'totalUnits' => $totalUnits,
+            'totalUnit' => $totalUnits,
+            'totalTrashBins' => $totalTrashBins,
+            'totalTongSampah' => $totalTrashBins,
+            'totalUsers' => $totalUsers,
+            'totalPengguna' => $totalUsers,
             'totalPenuh' => TrashBin::where('status', 'penuh')->count(),
-            'totalDiangkutHariIni' => TrashHistory::whereDate('tanggal', today())->count(),
-            'totalAduanPending' => Complaint::where('status', 'menunggu')->count(),
+            'totalDiangkutHariIni' => $totalDiangkutHariIni,
+            'pengangkutanHariIni' => $totalDiangkutHariIni,
+            'totalAduanPending' => $totalAduanPending,
+            'totalAduanMenunggu' => $totalAduanPending,
+            'totalReports' => $totalReports,
             'tongPerUnit' => Unit::withCount(['trashBins', 'trashBins as penuh_count' => fn($q) => $q->where('status', 'penuh')])
                 ->get()
                 ->map(fn($u) => [
+                    'unit' => $u->nama,
                     'nama' => $u->nama,
+                    'total_tong' => $u->trash_bins_count,
                     'total' => $u->trash_bins_count,
                     'penuh' => $u->penuh_count,
                 ]),
@@ -46,7 +61,13 @@ class DashboardController extends Controller
                 ->whereDate('tanggal', '>=', now()->subDays(30))
                 ->groupBy('date')
                 ->orderBy('date')
-                ->get(),
+                ->get()
+                ->map(fn ($item) => [
+                    'date' => $item->date,
+                    'count' => (int) $item->count,
+                    'tanggal' => $item->date,
+                    'jumlah' => (int) $item->count,
+                ]),
         ]);
     }
 
@@ -54,11 +75,14 @@ class DashboardController extends Controller
     {
         $pendingComplaints = $this->unitComplaintQuery($user->unit_id)
             ->where('status', 'menunggu');
+        $unitReports = Report::where('unit_id', $user->unit_id);
 
         return Inertia::render('Dashboard/AdminUnit', [
             'totalUnits' => Unit::where('id', $user->unit_id)->count(),
             'totalTrashBins' => TrashBin::where('unit_id', $user->unit_id)->count(),
             'totalUsers' => User::where('unit_id', $user->unit_id)->count(),
+            'totalPetugas' => User::whereHas('role', fn ($role) => $role->where('name', 'petugas'))->count(),
+            'totalReports' => (clone $unitReports)->count(),
             'totalPenuh' => TrashBin::where('unit_id', $user->unit_id)->where('status', 'penuh')->count(),
             'totalDiangkutHariIni' => TrashHistory::whereHas('trashBin', fn($q) => $q->where('unit_id', $user->unit_id))
                 ->whereDate('tanggal', today())->count(),
@@ -67,7 +91,9 @@ class DashboardController extends Controller
                 ->withCount(['trashBins', 'trashBins as penuh_count' => fn($q) => $q->where('status', 'penuh')])
                 ->get()
                 ->map(fn($u) => [
+                    'unit' => $u->nama,
                     'nama' => $u->nama,
+                    'total_tong' => $u->trash_bins_count,
                     'total' => $u->trash_bins_count,
                     'penuh' => $u->penuh_count,
                 ]),
@@ -85,7 +111,13 @@ class DashboardController extends Controller
                 ->whereDate('tanggal', '>=', now()->subDays(30))
                 ->groupBy('date')
                 ->orderBy('date')
-                ->get(),
+                ->get()
+                ->map(fn ($item) => [
+                    'date' => $item->date,
+                    'count' => (int) $item->count,
+                    'tanggal' => $item->date,
+                    'jumlah' => (int) $item->count,
+                ]),
         ]);
     }
 

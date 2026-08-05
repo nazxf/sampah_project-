@@ -31,8 +31,6 @@ const roleNavConfig = {
     ],
     siswa: [
         { label: 'Dasbor', route: 'dashboard', icon: 'dashboard' },
-        { label: 'Monitoring', route: 'siswa.monitoring', icon: 'monitoring' },
-        { label: 'Aduan Saya', route: 'siswa.aduan.index', icon: 'complaint' },
     ],
 };
 
@@ -51,8 +49,6 @@ function getMobileBottomNav(role) {
         base.push({ label: 'Angkut', route: 'petugas.pengangkutan.index', icon: 'truck' });
         base.push({ label: 'Profil', route: 'profile.edit', icon: 'profile' });
     } else {
-        base.push({ label: 'Monitoring', route: 'siswa.monitoring', icon: 'monitoring' });
-        base.push({ label: 'Aduan', route: 'siswa.aduan.index', icon: 'complaint' });
         base.push({ label: 'Profil', route: 'profile.edit', icon: 'profile' });
     }
 

@@ -8,6 +8,10 @@ import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import EmptyState from '@/Components/EmptyState';
 import StatCard from '@/Components/StatCard';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler } from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler);
 
 const tipeFilterTabs = ['semua', 'harian', 'mingguan', 'bulanan'];
 
@@ -23,7 +27,39 @@ const tipeLabels = {
     bulanan: 'Bulanan',
 };
 
-export default function ReportsIndex({ reports, summary, filters, units }) {
+const chartOptionsBase = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom',
+            labels: {
+                usePointStyle: true,
+                boxWidth: 8,
+                padding: 14,
+                font: { size: 11 },
+                color: '#5f665f',
+            },
+        },
+        tooltip: {
+            backgroundColor: '#182018',
+            titleFont: { size: 12 },
+            bodyFont: { size: 12 },
+            padding: 10,
+            cornerRadius: 8,
+        },
+    },
+};
+
+function ChartEmpty({ title = 'Belum ada data grafik' }) {
+    return (
+        <div className="flex h-full min-h-[220px] items-center justify-center rounded-lg border border-dashed border-cloud-ash bg-warm-chalk px-4 text-center">
+            <p className="text-sm font-medium text-muted-earth">{title}</p>
+        </div>
+    );
+}
+
+export default function ReportsIndex({ reports, summary, chartData, filters, units }) {
     const { props } = usePage();
     const user = props.auth.user;
     const canWrite = user?.role === 'super_admin' || user?.role === 'admin_unit';
@@ -171,6 +207,138 @@ export default function ReportsIndex({ reports, summary, filters, units }) {
         },
     ];
 
+    const metricBreakdown = chartData?.metric_breakdown || [];
+    const typeBreakdown = chartData?.type_breakdown || [];
+    const trend = chartData?.trend || [];
+    const monthLabel = chartData?.month_label || 'Bulan ini';
+    const hasMetricData = metricBreakdown.some((item) => Number(item.value) > 0);
+    const hasTypeData = typeBreakdown.some((item) => Number(item.total) > 0);
+    const hasTrendData = trend.some((item) =>
+        Number(item.tong_penuh) > 0 ||
+        Number(item.pengangkutan) > 0 ||
+        Number(item.aduan) > 0 ||
+        Number(item.laporan) > 0
+    );
+
+    const metricChartData = {
+        labels: metricBreakdown.map((item) => item.label),
+        datasets: [
+            {
+                label: 'Total',
+                data: metricBreakdown.map((item) => item.value || 0),
+                backgroundColor: ['rgba(220, 38, 38, 0.72)', 'rgba(22, 163, 74, 0.72)', 'rgba(217, 119, 6, 0.72)', 'rgba(79, 70, 229, 0.72)'],
+                borderColor: ['#dc2626', '#16a34a', '#d97706', '#4f46e5'],
+                borderWidth: 1,
+                borderRadius: 8,
+            },
+        ],
+    };
+
+    const metricChartOptions = {
+        ...chartOptionsBase,
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#6f776f', font: { size: 11 } },
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: '#edf1ed' },
+                ticks: { color: '#6f776f', precision: 0 },
+            },
+        },
+    };
+
+    const typeChartData = {
+        labels: typeBreakdown.map((item) => item.label),
+        datasets: [
+            {
+                data: typeBreakdown.map((item) => item.total || 0),
+                backgroundColor: ['#3b82f6', '#8b5cf6', '#16a34a'],
+                borderColor: '#ffffff',
+                borderWidth: 3,
+                hoverOffset: 4,
+            },
+        ],
+    };
+
+    const trendChartData = {
+        labels: trend.map((item) => item.label),
+        datasets: [
+            {
+                label: 'Pengangkutan',
+                data: trend.map((item) => item.pengangkutan || 0),
+                borderColor: '#16a34a',
+                backgroundColor: 'rgba(22, 163, 74, 0.08)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#16a34a',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                tension: 0.35,
+                fill: true,
+            },
+            {
+                label: 'Tong Penuh',
+                data: trend.map((item) => item.tong_penuh || 0),
+                borderColor: '#dc2626',
+                backgroundColor: 'rgba(220, 38, 38, 0.05)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#dc2626',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                tension: 0.35,
+                fill: false,
+            },
+            {
+                label: 'Aduan',
+                data: trend.map((item) => item.aduan || 0),
+                borderColor: '#d97706',
+                backgroundColor: 'rgba(217, 119, 6, 0.05)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#d97706',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                tension: 0.35,
+                fill: false,
+            },
+            {
+                label: 'Laporan',
+                data: trend.map((item) => item.laporan || 0),
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.05)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#4f46e5',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                tension: 0.35,
+                fill: false,
+            },
+        ],
+    };
+
+    const trendChartOptions = {
+        ...chartOptionsBase,
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#6f776f', font: { size: 11 }, maxTicksLimit: 8 },
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: '#edf1ed' },
+                ticks: { color: '#6f776f', precision: 0 },
+            },
+        },
+    };
+
     return (
         <AppLayout header="Laporan">
             {flashMsg && (
@@ -197,6 +365,51 @@ export default function ReportsIndex({ reports, summary, filters, units }) {
                             color={card.color}
                         />
                     ))}
+                </div>
+            )}
+
+            {summary && (
+                <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+                    <div className="rounded-xl border border-cloud-ash bg-white p-5">
+                        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <h2 className="text-sm font-semibold text-earth-heading">Tren sebulan ini</h2>
+                                <p className="text-xs text-muted-earth/70">Data harian {monthLabel}: pengangkutan, tong penuh, aduan, dan laporan.</p>
+                            </div>
+                            <span className="text-xs font-medium text-muted-earth">{reports?.total || 0} laporan terfilter</span>
+                        </div>
+                        <div className="h-72">
+                            {hasTrendData ? (
+                                <Line data={trendChartData} options={trendChartOptions} />
+                            ) : (
+                                <ChartEmpty title={`Belum ada data di ${monthLabel}`} />
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                        <div className="rounded-xl border border-cloud-ash bg-white p-5">
+                            <h2 className="mb-4 text-sm font-semibold text-earth-heading">Rekap metrik bulan ini</h2>
+                            <div className="h-56">
+                                {hasMetricData ? (
+                                    <Bar data={metricChartData} options={metricChartOptions} />
+                                ) : (
+                                    <ChartEmpty title={`Belum ada rekap di ${monthLabel}`} />
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-cloud-ash bg-white p-5">
+                            <h2 className="mb-4 text-sm font-semibold text-earth-heading">Komposisi tipe bulan ini</h2>
+                            <div className="h-56">
+                                {hasTypeData ? (
+                                    <Doughnut data={typeChartData} options={{ ...chartOptionsBase, cutout: '62%' }} />
+                                ) : (
+                                    <ChartEmpty title="Belum ada tipe laporan" />
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

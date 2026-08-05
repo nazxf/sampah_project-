@@ -78,8 +78,7 @@ export default function Siswa({
 
             <div className="space-y-6">
                 {/* Quick Action - Lapor Sampah */}
-                <Link
-                    href={route('siswa.aduan.index')}
+                <div
                     className="flex flex-col items-center rounded-2xl bg-primary-600 p-6 text-white hover:shadow-green-glow transition hover:bg-primary-700 active:scale-[0.98]"
                 >
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 mb-3">
@@ -87,9 +86,9 @@ export default function Siswa({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                     </div>
-                    <span className="text-lg font-bold">Lapor Sampah</span>
-                    <span className="mt-1 text-sm text-green-100">Laporkan sampah di sekitarmu sekarang</span>
-                </Link>
+                    <span className="text-lg font-bold">Lapor lewat QR Tong</span>
+                    <span className="mt-1 text-center text-sm text-green-100">Scan barcode/QR yang ditempel pada tong untuk melapor tanpa login</span>
+                </div>
 
                 {/* Stat Cards */}
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -130,12 +129,7 @@ export default function Siswa({
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-earth-heading">Tong Sampah Terdekat</h3>
                         {hasTongSekitar && (
-                            <Link
-                                href={route('siswa.monitoring')}
-                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
-                            >
-                                Lihat Peta
-                            </Link>
+                            <span className="text-xs font-medium text-muted-earth">Scan QR pada tong untuk melapor</span>
                         )}
                     </div>
                     {hasTongSekitar ? (
@@ -162,15 +156,9 @@ export default function Siswa({
                                                     <StatusBadge status={item.status} type="trash" />
                                                 </div>
                                                 {isPenuh && (
-                                                    <Link
-                                                        href={route('siswa.aduan.index')}
-                                                        className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 transition"
-                                                    >
-                                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                                                        </svg>
-                                                        Laporkan
-                                                    </Link>
+                                                    <p className="mt-3 rounded-lg bg-red-100 px-3 py-1.5 text-center text-xs font-medium text-red-700">
+                                                        Laporkan dari QR pada tong.
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
@@ -196,12 +184,7 @@ export default function Siswa({
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-earth-heading">Aduan Saya</h3>
                         {hasAduan && (
-                            <Link
-                                href={route('siswa.aduan.index')}
-                                className="text-xs font-medium text-primary-600 hover:text-primary-700 transition"
-                            >
-                                Lihat Semua
-                            </Link>
+                            <span className="text-xs font-medium text-muted-earth">Riwayat lama</span>
                         )}
                     </div>
                     {hasAduan ? (
@@ -238,10 +221,6 @@ export default function Siswa({
                             }
                             title="Belum ada aduan"
                             description="Kamu belum membuat aduan. Laporkan sampah di sekitarmu sekarang!"
-                            action={{
-                                label: 'Buat Aduan',
-                                url: route('siswa.aduan.index'),
-                            }}
                         />
                     )}
                 </div>

@@ -1,5 +1,9 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, usePage } from '@inertiajs/react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const tipeLabels = {
     harian: 'Harian',
@@ -34,6 +38,48 @@ export default function Show({ report }) {
     const { props } = usePage();
     const role = props.auth?.user?.role;
     const canWrite = role === 'super_admin' || role === 'admin_unit';
+    const metricItems = [
+        { label: 'Tong Penuh', value: report.total_tong_penuh || 0 },
+        { label: 'Pengangkutan', value: report.total_pengangkutan || 0 },
+        { label: 'Aduan', value: report.total_aduan || 0 },
+    ];
+    const hasMetricData = metricItems.some((item) => Number(item.value) > 0);
+    const metricChartData = {
+        labels: metricItems.map((item) => item.label),
+        datasets: [
+            {
+                data: metricItems.map((item) => item.value),
+                backgroundColor: ['#dc2626', '#16a34a', '#d97706'],
+                borderColor: '#ffffff',
+                borderWidth: 3,
+                hoverOffset: 4,
+            },
+        ],
+    };
+    const metricChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '64%',
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    boxWidth: 8,
+                    padding: 14,
+                    font: { size: 11 },
+                    color: '#5f665f',
+                },
+            },
+            tooltip: {
+                backgroundColor: '#182018',
+                titleFont: { size: 12 },
+                bodyFont: { size: 12 },
+                padding: 10,
+                cornerRadius: 8,
+            },
+        },
+    };
 
     return (
         <AppLayout header="Detail Laporan">
@@ -74,6 +120,24 @@ export default function Show({ report }) {
                     <Metric label="Total Tong Penuh" value={report.total_tong_penuh} />
                     <Metric label="Total Pengangkutan" value={report.total_pengangkutan} />
                     <Metric label="Total Aduan" value={report.total_aduan} />
+                </div>
+
+                <div className="rounded-lg border border-cloud-ash bg-white p-5">
+                    <div className="mb-4">
+                        <h3 className="text-sm font-semibold text-earth-heading">Diagram rekap laporan</h3>
+                        <p className="mt-1 text-xs text-muted-earth/70">
+                            Komposisi total kejadian pada periode laporan ini.
+                        </p>
+                    </div>
+                    <div className="h-72">
+                        {hasMetricData ? (
+                            <Doughnut data={metricChartData} options={metricChartOptions} />
+                        ) : (
+                            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-cloud-ash bg-warm-chalk px-4 text-center">
+                                <p className="text-sm font-medium text-muted-earth">Belum ada data untuk diagram.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="rounded-lg border border-cloud-ash bg-white p-5">

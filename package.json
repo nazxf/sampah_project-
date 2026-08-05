@@ -25,6 +25,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "html5-qrcode": "^2.3.8",
         "leaflet": "^1.9.4"
     },
     "overrides": {

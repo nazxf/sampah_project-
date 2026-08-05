@@ -84,7 +84,7 @@ class SecurityAccessTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_siswa_can_create_own_complaint(): void
+    public function test_siswa_cannot_create_login_based_complaint_after_qr_flow_is_enabled(): void
     {
         $unit = $this->makeUnit('SD Kampus Aduan');
         $siswa = $this->makeUser('siswa', $unit);
@@ -96,17 +96,16 @@ class SecurityAccessTest extends TestCase
                 'judul' => 'Tong penuh',
                 'deskripsi' => 'Tong di depan kelas penuh.',
             ])
-            ->assertRedirect();
+            ->assertForbidden();
 
-        $this->assertDatabaseHas('complaints', [
+        $this->assertDatabaseMissing('complaints', [
             'user_id' => $siswa->id,
             'trash_bin_id' => $trashBin->id,
             'judul' => 'Tong penuh',
-            'status' => 'menunggu',
         ]);
     }
 
-    public function test_siswa_can_create_general_complaint_without_trash_bin(): void
+    public function test_siswa_cannot_create_general_complaint_without_qr_trash_bin(): void
     {
         $unit = $this->makeUnit('SD Kampus Aduan Umum Siswa');
         $siswa = $this->makeUser('siswa', $unit);
@@ -116,13 +115,12 @@ class SecurityAccessTest extends TestCase
                 'judul' => 'Aduan umum',
                 'deskripsi' => 'Aduan ini tidak terkait tong tertentu.',
             ])
-            ->assertRedirect();
+            ->assertForbidden();
 
-        $this->assertDatabaseHas('complaints', [
+        $this->assertDatabaseMissing('complaints', [
             'user_id' => $siswa->id,
             'trash_bin_id' => null,
             'judul' => 'Aduan umum',
-            'status' => 'menunggu',
         ]);
     }
 
@@ -136,12 +134,7 @@ class SecurityAccessTest extends TestCase
 
         $this->actingAs($siswa)
             ->get(route('siswa.aduan.index'))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Complaints/Index')
-                ->has('trashBins', 1)
-                ->where('trashBins.0.id', $ownedTrashBin->id)
-            );
+            ->assertRedirect(route('dashboard'));
 
         $this->actingAs($siswa)
             ->post(route('siswa.aduan.store'), [
@@ -157,7 +150,7 @@ class SecurityAccessTest extends TestCase
         ]);
     }
 
-    public function test_siswa_dashboard_and_monitoring_are_scoped_to_own_unit(): void
+    public function test_siswa_dashboard_is_scoped_and_monitoring_is_closed(): void
     {
         $ownedUnit = $this->makeUnit('SD Kampus Scope');
         $otherUnit = $this->makeUnit('SMP Kampus Scope');
@@ -176,12 +169,7 @@ class SecurityAccessTest extends TestCase
 
         $this->actingAs($siswa)
             ->get(route('siswa.monitoring'))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('TrashBins/Monitor')
-                ->has('units', 1)
-                ->where('units.0.id', $ownedUnit->id)
-            );
+            ->assertForbidden();
     }
 
     public function test_authorized_users_can_view_complaint_and_trash_history_detail_pages(): void

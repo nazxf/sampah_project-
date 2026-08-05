@@ -198,6 +198,7 @@ class DatabaseSeeder extends Seeder
             SensorLogSeeder::class,
             PickupScheduleSeeder::class,
             PublicReportSeeder::class,
+            MonthlyReportDemoSeeder::class,
         ]);
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\{
     ComplaintController,
     DashboardController,
     ProfileController,
+    PublicReportController,
     ReportController,
     TrashBinController,
     TrashHistoryController,
@@ -19,6 +20,13 @@ Route::get('/', function () {
         'canRegister' => Route::has('register'),
     ]);
 });
+
+Route::get('/lapor/{trashBin:kode}', [PublicReportController::class, 'create'])->name('public-reports.create');
+Route::post('/lapor/{trashBin:kode}', [PublicReportController::class, 'store'])->name('public-reports.store');
+
+Route::get('/scanner', function () {
+    return Inertia::render('Scanner');
+})->name('scanner');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -49,6 +57,7 @@ Route::middleware(['auth', 'verified', 'viewer'])
         // Trash Bins
         Route::get('/trash-bins', [TrashBinController::class, 'index'])->name('trash-bins.index');
         Route::post('/trash-bins', [TrashBinController::class, 'store'])->name('trash-bins.store');
+        Route::get('/trash-bins/{trashBin}/barcode', [TrashBinController::class, 'barcode'])->name('trash-bins.barcode');
         Route::put('/trash-bins/{trashBin}', [TrashBinController::class, 'update'])->name('trash-bins.update');
         Route::delete('/trash-bins/{trashBin}', [TrashBinController::class, 'destroy'])->name('trash-bins.destroy');
         Route::put('/trash-bins/{trashBin}/status', [TrashBinController::class, 'updateStatus'])->name('trash-bins.status');
@@ -100,16 +109,16 @@ Route::middleware(['auth', 'verified', 'role:petugas,super_admin'])
         Route::get('/monitoring', [TrashBinController::class, 'monitor'])->name('monitoring');
     });
 
-// Siswa
+// Warga/siswa tidak lagi memakai monitoring atau aduan login.
+// Laporan warga masuk dari QR publik per tong: /lapor/{kode-tong}.
 Route::middleware(['auth', 'verified', 'role:siswa'])
     ->prefix('siswa')
     ->name('siswa.')
     ->group(function () {
-        Route::get('/monitoring', [TrashBinController::class, 'monitor'])->name('monitoring');
-
-        Route::get('/aduan', [ComplaintController::class, 'index'])->name('aduan.index');
-        Route::post('/aduan', [ComplaintController::class, 'store'])->name('aduan.store');
-        Route::get('/aduan/{complaint}', [ComplaintController::class, 'show'])->name('aduan.show');
+        Route::get('/monitoring', fn () => abort(403, 'Monitoring hanya untuk admin dan petugas.'))->name('monitoring');
+        Route::get('/aduan', fn () => redirect()->route('dashboard')->with('info', 'Laporan warga dikirim lewat QR pada tong sampah.'))->name('aduan.index');
+        Route::post('/aduan', fn () => abort(403, 'Laporan warga hanya dapat dikirim lewat QR pada tong sampah.'))->name('aduan.store');
+        Route::get('/aduan/{complaint}', fn () => abort(403, 'Riwayat aduan login warga sudah dinonaktifkan.'))->name('aduan.show');
     });
 
 require __DIR__.'/auth.php';
