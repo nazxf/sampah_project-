@@ -46,16 +46,16 @@ export default function Scanner() {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length) {
                 setHasCameras(true);
-                html5QrCode.current = new Html5Qrcode("reader");
+                html5QrCode.current = new Html5Qrcode("reader", { verbose: false });
 
                 await html5QrCode.current.start(
                     { facingMode: "environment" },
                     { fps: 10, qrbox: { width: 250, height: 250 } },
                     (decodedText) => {
-                        handleScan(decodedText);
+                        if (decodedText) handleScan(decodedText);
                     },
-                    (errorMessage) => {
-                        // Ignoring errors during continuous scanning
+                    () => {
+                        // Silently ignore scan-miss errors from html5-qrcode
                     }
                 );
             } else {
@@ -65,10 +65,11 @@ export default function Scanner() {
             }
         } catch (err) {
             setScanning(false);
-            if (err.name === 'NotAllowedError' || err.message.includes('Permission denied')) {
+            const msg = (err && err.message) ? err.message : String(err);
+            if (err?.name === 'NotAllowedError' || msg.includes('Permission denied')) {
                 setError("Akses kamera ditolak. Pastikan Anda memberikan izin kamera pada browser. Catatan: Akses kamera mewajibkan HTTPS.");
             } else {
-                setError("Gagal mengakses kamera: " + err.message);
+                setError("Gagal mengakses kamera: " + msg);
             }
             console.error("Camera access error:", err);
         }
@@ -167,7 +168,7 @@ export default function Scanner() {
             setError(null);
             
             try {
-                const html5QrCodeFile = new Html5Qrcode("reader-fallback");
+                const html5QrCodeFile = new Html5Qrcode("reader-fallback", { verbose: false });
                 
                 const attempts = [
                     { desc: "Original file", file: file },
