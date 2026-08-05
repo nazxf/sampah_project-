@@ -91,16 +91,118 @@ export default function Scanner() {
         }
     };
 
+    const [processing, setProcessing] = useState(false);
+
+    const preprocessImage = (file, maxDim, options = {}) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(img.src);
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                if (options.grayscale || options.contrast) {
+                    try {
+                        const imgData = ctx.getImageData(0, 0, width, height);
+                        const data = imgData.data;
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i+1];
+                            const b = data[i+2];
+                            let v = 0.299 * r + 0.587 * g + 0.114 * b;
+                            
+                            if (options.contrast) {
+                                v = v > 120 ? 255 : 0;
+                            }
+                            
+                            data[i] = v;
+                            data[i+1] = v;
+                            data[i+2] = v;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                    } catch (e) {
+                        console.error("Canvas context manipulation failed", e);
+                    }
+                }
+                
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Canvas toBlob failed'));
+                    }
+                }, 'image/jpeg', 0.9);
+            };
+            img.onerror = (err) => {
+                URL.revokeObjectURL(img.src);
+                reject(err);
+            };
+            img.src = URL.createObjectURL(file);
+        });
+    };
+
     const handleFileUpload = async (e) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
+            setProcessing(true);
+            setError(null);
+            
             try {
                 const html5QrCodeFile = new Html5Qrcode("reader-fallback");
-                const decodedText = await html5QrCodeFile.scanFile(file, false);
-                handleScan(decodedText);
+                
+                const attempts = [
+                    { desc: "Original file", file: file },
+                    { desc: "Downscale 1000px", getBlob: () => preprocessImage(file, 1000) },
+                    { desc: "Downscale 800px + Grayscale", getBlob: () => preprocessImage(file, 800, { grayscale: true }) },
+                    { desc: "Downscale 1200px", getBlob: () => preprocessImage(file, 1200) },
+                    { desc: "Downscale 800px + Grayscale + Contrast", getBlob: () => preprocessImage(file, 800, { grayscale: true, contrast: true }) }
+                ];
+                
+                let decodedText = null;
+                let lastError = null;
+                
+                for (const attempt of attempts) {
+                    try {
+                        let targetFile = attempt.file;
+                        if (!targetFile && attempt.getBlob) {
+                            targetFile = await attempt.getBlob();
+                        }
+                        decodedText = await html5QrCodeFile.scanFile(targetFile, false);
+                        if (decodedText) {
+                            break;
+                        }
+                    } catch (err) {
+                        lastError = err;
+                    }
+                }
+                
+                if (decodedText) {
+                    handleScan(decodedText);
+                } else {
+                    throw lastError || new Error("QR code tidak terdeteksi");
+                }
             } catch (err) {
                 alert("QR code tidak terdeteksi pada gambar. Pastikan Anda memfoto QR code dari jarak dekat dan gambar tidak buram.");
                 console.error("Scan file error:", err);
+            } finally {
+                setProcessing(false);
             }
         }
     };
@@ -136,7 +238,15 @@ export default function Scanner() {
                         </div>
 
                         <div className="mt-8 overflow-hidden rounded-2xl bg-slate-900 relative">
-                            {error ? (
+                            {processing ? (
+                                <div className="flex flex-col items-center justify-center p-6 text-center text-slate-300" style={{ minHeight: '300px' }}>
+                                    <svg className="animate-spin h-10 w-10 text-green-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <p className="text-sm font-semibold">Memproses & memindai gambar...</p>
+                                </div>
+                            ) : error ? (
                                 <div className="flex flex-col items-center justify-center p-6 text-center text-slate-300" style={{ minHeight: '300px' }}>
                                     <Icon name="alert" className="mb-3 h-10 w-10 text-red-500" />
                                     <p className="text-sm">{error}</p>
