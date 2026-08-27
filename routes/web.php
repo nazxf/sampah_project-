@@ -83,6 +83,9 @@ Route::middleware(['auth', 'verified', 'viewer'])
         Route::get('/reports/{report}/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
         Route::get('/reports/{report}/csv', [ReportController::class, 'exportCsv'])->name('reports.csv');
 
+        // Laporan Warga (QR publik) — verifikasi bukti
+        Route::get('/laporan-warga', [PublicReportController::class, 'adminIndex'])->name('public-reports.index');
+
         // Users
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');

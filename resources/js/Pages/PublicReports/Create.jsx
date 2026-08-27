@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import QRCode from '@/Components/QRCode';
 import StatusBadge from '@/Components/StatusBadge';
 import { Head, useForm, usePage } from '@inertiajs/react';
@@ -12,14 +13,27 @@ export default function Create({ trashBin, jenisMasalahLabels, statusOptions }) 
     const { props } = usePage();
     const flashSuccess = props.flash?.success;
     const flashError = props.flash?.error;
+    const flashFotoUrl = props.flash?.foto_url;
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+    const [preview, setPreview] = useState(null);
 
     const form = useForm({
         status_tong: 'penuh',
         jenis_masalah: '',
         nama_pelapor: '',
         deskripsi: '',
+        foto: null,
     });
+
+    const onFotoChange = (event) => {
+        const file = event.target.files?.[0] || null;
+        form.setData('foto', file);
+        if (preview) {
+            URL.revokeObjectURL(preview);
+        }
+        setPreview(file ? URL.createObjectURL(file) : null);
+    };
 
     const selectedStatus = form.data.status_tong;
     const showIssueType = selectedStatus !== 'penuh';
@@ -29,11 +43,16 @@ export default function Create({ trashBin, jenisMasalahLabels, statusOptions }) 
         form.post(route('public-reports.store', trashBin.kode), {
             preserveScroll: true,
             onSuccess: () => {
+                if (preview) {
+                    URL.revokeObjectURL(preview);
+                }
+                setPreview(null);
                 form.setData({
                     status_tong: 'penuh',
                     jenis_masalah: '',
                     nama_pelapor: '',
                     deskripsi: '',
+                    foto: null,
                 });
             },
         });
@@ -57,6 +76,16 @@ export default function Create({ trashBin, jenisMasalahLabels, statusOptions }) 
                 {flashSuccess && (
                     <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
                         {flashSuccess}
+                    </div>
+                )}
+                {flashFotoUrl && (
+                    <div className="mb-4 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-primary-700">Bukti foto laporan Anda:</p>
+                        <img
+                            src={flashFotoUrl}
+                            alt="Bukti laporan"
+                            className="mt-2 max-h-56 rounded-lg border border-primary-200 object-contain"
+                        />
                     </div>
                 )}
                 {flashError && (
@@ -164,6 +193,25 @@ export default function Create({ trashBin, jenisMasalahLabels, statusOptions }) 
                                     <span>{form.errors.deskripsi || 'Opsional, maksimal 300 karakter.'}</span>
                                     <span>{form.data.deskripsi.length}/300</span>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-earth-heading">Bukti foto (opsional)</label>
+                                <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={onFotoChange}
+                                    className="mt-2 block w-full text-sm text-earth-heading file:mr-3 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-700"
+                                />
+                                <p className="mt-1 text-xs text-muted-earth">JPG/PNG/WebP, maksimal 5 MB. Foto menjadi bukti valid laporan Anda.</p>
+                                {preview && (
+                                    <img
+                                        src={preview}
+                                        alt="Preview bukti"
+                                        className="mt-3 max-h-56 rounded-lg border border-cloud-ash object-contain"
+                                    />
+                                )}
+                                {form.errors.foto && <p className="mt-1 text-xs text-earth-red">{form.errors.foto}</p>}
                             </div>
                         </div>
 

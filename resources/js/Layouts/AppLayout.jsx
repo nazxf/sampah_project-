@@ -13,6 +13,7 @@ const roleNavConfig = {
         { label: 'Pengangkutan', route: 'admin.trash-histories.index', icon: 'truck' },
         { label: 'Aduan', route: 'admin.complaints.index', icon: 'complaint' },
         { label: 'Laporan', route: 'admin.reports.index', icon: 'report' },
+        { label: 'Laporan Warga', route: 'admin.public-reports.index', icon: 'report' },
         { label: 'Pengguna', route: 'admin.users.index', icon: 'users' },
     ],
     admin_unit: [
@@ -22,6 +23,7 @@ const roleNavConfig = {
         { label: 'Pengangkutan', route: 'admin.trash-histories.index', icon: 'truck' },
         { label: 'Aduan', route: 'admin.complaints.index', icon: 'complaint' },
         { label: 'Laporan', route: 'admin.reports.index', icon: 'report' },
+        { label: 'Laporan Warga', route: 'admin.public-reports.index', icon: 'report' },
         { label: 'Pengguna', route: 'admin.users.index', icon: 'users' },
     ],
     petugas: [

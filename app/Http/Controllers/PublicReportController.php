@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\{Activity, PublicReport, SipesaNotification, TrashBin};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -30,6 +31,7 @@ class PublicReportController extends Controller
             'jenis_masalah' => ['nullable', Rule::in(array_keys(PublicReport::getJenisMasalahLabels()))],
             'nama_pelapor' => ['nullable', 'string', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:300'],
+            'foto' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
         ]);
 
         $statusTong = $validated['status_tong'];
@@ -49,6 +51,11 @@ class PublicReportController extends Controller
         }
 
         $report = DB::transaction(function () use ($request, $trashBin, $validated, $statusTong, $jenisMasalah, $ipAddress) {
+            $fotoPath = null;
+            if ($request->hasFile('foto')) {
+                $fotoPath = $request->file('foto')->store('laporan', 'public');
+            }
+
             $description = trim((string) ($validated['deskripsi'] ?? ''));
             $statusLabel = match ($statusTong) {
                 'penuh' => 'Penuh',
@@ -62,6 +69,7 @@ class PublicReportController extends Controller
                 'jenis_masalah' => $jenisMasalah,
                 'nama_pelapor' => $validated['nama_pelapor'] ?? null,
                 'deskripsi' => trim("Kondisi tong: {$statusLabel}. {$description}"),
+                'foto' => $fotoPath,
                 'status' => 'menunggu',
                 'ip_address' => $ipAddress,
                 'user_agent' => (string) $request->userAgent(),
@@ -94,6 +102,19 @@ class PublicReportController extends Controller
 
         return redirect()
             ->route('public-reports.create', ['trashBin' => $trashBin->kode])
-            ->with('success', 'Laporan berhasil dikirim. Nomor tiket: ' . $report->nomor_tiket);
+            ->with('success', 'Laporan berhasil dikirim. Nomor tiket: ' . $report->nomor_tiket)
+            ->with('foto_url', $report->foto_url);
+    }
+
+    public function adminIndex(Request $request)
+    {
+        $reports = PublicReport::with('trashBin.unit')
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('Admin/PublicReports/Index', [
+            'reports' => $reports,
+        ]);
     }
 }
