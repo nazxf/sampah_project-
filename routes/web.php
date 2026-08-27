@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\{
-    ComplaintController,
     DashboardController,
     ProfileController,
     PublicReportController,
@@ -68,11 +67,11 @@ Route::middleware(['auth', 'verified', 'viewer'])
         Route::get('/trash-histories/{trashHistory}', [TrashHistoryController::class, 'show'])->name('trash-histories.show');
         Route::delete('/trash-histories/{trashHistory}', [TrashHistoryController::class, 'destroy'])->name('trash-histories.destroy');
 
-        // Complaints
-        Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
-        Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
-        Route::put('/complaints/{complaint}/tanggapi', [ComplaintController::class, 'tanggapi'])->name('complaints.tanggapi');
-        Route::delete('/complaints/{complaint}', [ComplaintController::class, 'destroy'])->name('complaints.destroy');
+        // Complaints — data Laporan Warga (QR publik); aduan login sudah dinonaktifkan.
+        // Nama route & URL tetap agar menu "Aduan" dan tautan lain tidak berubah.
+        Route::get('/complaints', [PublicReportController::class, 'index'])->name('complaints.index');
+        Route::put('/complaints/{publicReport}/tanggapi', [PublicReportController::class, 'tanggapi'])->name('complaints.tanggapi');
+        Route::delete('/complaints/{publicReport}', [PublicReportController::class, 'destroy'])->name('complaints.destroy');
 
         // Reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -82,9 +81,6 @@ Route::middleware(['auth', 'verified', 'viewer'])
         Route::delete('/reports/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
         Route::get('/reports/{report}/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
         Route::get('/reports/{report}/csv', [ReportController::class, 'exportCsv'])->name('reports.csv');
-
-        // Laporan Warga (QR publik) — verifikasi bukti
-        Route::get('/laporan-warga', [PublicReportController::class, 'adminIndex'])->name('public-reports.index');
 
         // Users
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -119,9 +115,6 @@ Route::middleware(['auth', 'verified', 'role:siswa'])
     ->name('siswa.')
     ->group(function () {
         Route::get('/monitoring', fn () => abort(403, 'Monitoring hanya untuk admin dan petugas.'))->name('monitoring');
-        Route::get('/aduan', fn () => redirect()->route('dashboard')->with('info', 'Laporan warga dikirim lewat QR pada tong sampah.'))->name('aduan.index');
-        Route::post('/aduan', fn () => abort(403, 'Laporan warga hanya dapat dikirim lewat QR pada tong sampah.'))->name('aduan.store');
-        Route::get('/aduan/{complaint}', fn () => abort(403, 'Riwayat aduan login warga sudah dinonaktifkan.'))->name('aduan.show');
     });
 
 require __DIR__.'/auth.php';

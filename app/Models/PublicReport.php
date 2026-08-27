@@ -52,6 +52,8 @@ class PublicReport extends Model
         'is_duplikat' => 'boolean',
     ];
 
+    protected $appends = ['foto_url'];
+
     // =========================================================
     // RELATIONS
     // =========================================================

@@ -28,6 +28,8 @@ services:
       SESSION_LIFETIME: "120"
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
+    volumes:
+      - uploads_data:/var/www/html/storage/app/public
     depends_on:
       - db
 
@@ -43,3 +45,4 @@ services:
 
 volumes:
   db_data:
+  uploads_data:

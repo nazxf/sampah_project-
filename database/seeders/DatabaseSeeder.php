@@ -22,8 +22,8 @@ class DatabaseSeeder extends Seeder
         //   kepala_unit   -> READ-ONLY dalam unit-nya saja
         //   kepala_pusat  -> READ-ONLY semua unit
         //   petugas       -> Eksekusi pengangkutan (tugas lapangan)
-        //   siswa         -> Aduan internal (login)
-        //   (anonim)      -> Halaman publik /laporan tanpa login
+        //   siswa         -> Melapor lewat QR pada tong sampah (tanpa login)
+        //   (anonim)      -> Halaman publik /lapor/{kode-tong} tanpa login
         // =========================================================
         $superAdmin = Role::create([
             'name' => 'super_admin',
@@ -53,7 +53,7 @@ class DatabaseSeeder extends Seeder
         $siswa = Role::create([
             'name' => 'siswa',
             'label' => 'Siswa',
-            'description' => 'Siswa/civitas yang dapat membuat aduan internal.',
+            'description' => 'Siswa/civitas yang melapor lewat QR pada tong sampah (tanpa login).',
         ]);
 
         // =========================================================
@@ -126,6 +126,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'petugas@sipesa.test',
             'password' => Hash::make('password'),
             'role_id' => $petugas->id,
+            'unit_id' => $sd->id,
             'no_telepon' => '081200000003',
             'email_verified_at' => now(),
         ]);
@@ -135,6 +136,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'petugas2@sipesa.test',
             'password' => Hash::make('password'),
             'role_id' => $petugas->id,
+            'unit_id' => $smp->id,
             'no_telepon' => '081200000004',
             'email_verified_at' => now(),
         ]);
