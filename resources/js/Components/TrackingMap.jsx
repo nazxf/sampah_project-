@@ -104,6 +104,7 @@ export default function TrackingMap({
     const userMarkerRef = useRef(null);
     const trailRef = useRef([]);
     const trailPolylineRef = useRef(null);
+    const routeLineRef = useRef(null);
     const animationFrameRef = useRef(null);
     const lastBinBoundsKey = useRef(null);
     // Koordinat petugas terakhir yang benar-benar di-commit (bukan posisi animasi
@@ -142,6 +143,30 @@ export default function TrackingMap({
         [mappedBins],
     );
 
+    // Tong terdekat dari posisi petugas (jarak udara). Dipakai sebagai target
+    // garis otomatis saat petugas belum memilih tong tertentu.
+    const nearestBinId = useMemo(() => {
+        if (!hasCoordinates(userLocation)) return null;
+        let best = null;
+        let bestDist = Infinity;
+        mappedBins.forEach((b) => {
+            if (!hasCoordinates(b)) return;
+            const d = distanceMeters(
+                [Number(userLocation.latitude), Number(userLocation.longitude)],
+                [Number(b.latitude), Number(b.longitude)],
+            );
+            if (d < bestDist) {
+                bestDist = d;
+                best = b;
+            }
+        });
+        return best ? String(best.id) : null;
+    }, [mappedBins, userLocation]);
+
+    // Tong target = pilihan manual jika ada, jika tidak → otomatis tong terdekat.
+    const targetBinId =
+        selectedBinId != null ? String(selectedBinId) : nearestBinId;
+
     useEffect(() => {
         if (!mapElementRef.current || mapRef.current) return;
 
@@ -162,6 +187,15 @@ export default function TrackingMap({
             weight: 3,
             opacity: 0.75,
             dashArray: '1 8',
+            lineCap: 'round',
+            lineJoin: 'round',
+        }).addTo(mapRef.current);
+
+        routeLineRef.current = L.polyline([], {
+            color: '#f59e0b',
+            weight: 3,
+            opacity: 0.85,
+            dashArray: '6 6',
             lineCap: 'round',
             lineJoin: 'round',
         }).addTo(mapRef.current);
@@ -190,6 +224,7 @@ export default function TrackingMap({
             mapRef.current = null;
             binsLayerRef.current = null;
             trailPolylineRef.current = null;
+            routeLineRef.current = null;
         };
     }, []);
 
@@ -204,7 +239,7 @@ export default function TrackingMap({
         currentBins.forEach((bin) => {
             const latLng = [Number(bin.latitude), Number(bin.longitude)];
             bounds.push(latLng);
-            const isSelected = String(bin.id) === String(selectedBinId);
+            const isSelected = String(bin.id) === targetBinId;
 
             const marker = L.marker(latLng, {
                 icon: isSelected ? makeTargetIcon() : makeBinIcon(bin.status),
@@ -236,12 +271,12 @@ export default function TrackingMap({
             lastBinBoundsKey.current = pointsKey;
             mapRef.current.fitBounds(bounds, {
                 padding: [28, 28],
-                maxZoom: selectedBinId ? 18 : 16,
+                maxZoom: targetBinId ? 18 : 16,
                 animate: true,
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [binsKey, pointsKey, selectedBinId]);
+    }, [binsKey, pointsKey, targetBinId]);
 
     // Ikut petugas: animasikan marker petugas + gambar jejak + pan mengikuti.
     useEffect(() => {
@@ -291,6 +326,24 @@ export default function TrackingMap({
         updateUserHeading(heading);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userLocation, following]);
+
+    // Garis otomatis posisi petugas → tong terdekat (atau tong pilihan).
+    // Mengikuti posisi petugas secara real-time; kosong saat tidak ada target.
+    useEffect(() => {
+        const line = routeLineRef.current;
+        const loc = userLocationRef.current;
+        const bin = binsRef.current.find((b) => String(b.id) === targetBinId);
+
+        if (!line || !hasCoordinates(loc) || !bin || !hasCoordinates(bin)) {
+            line?.setLatLngs([]);
+            return;
+        }
+        line.setLatLngs([
+            [Number(loc.latitude), Number(loc.longitude)],
+            [Number(bin.latitude), Number(bin.longitude)],
+        ]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [targetBinId, userLocation]);
 
     const animateMarker = (from, to) => {
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
