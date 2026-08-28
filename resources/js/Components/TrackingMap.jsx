@@ -166,7 +166,25 @@ export default function TrackingMap({
             lineJoin: 'round',
         }).addTo(mapRef.current);
 
+        // Leaflet membaca ukuran kontainer saat init. Di HP, ukuran kadang belum
+        // valid saat mount (layout/browser-chrome belum settle) sehingga peta tampil
+        // kosong/terpotong dan baru "muncul" setelah ada reflow (mis. saat sidebar
+        // dibuka). invalidateSize + ResizeObserver memastikan peta selalu memakai
+        // ukuran yang benar.
+        const invalidateSize = () => {
+            mapRef.current?.invalidateSize();
+        };
+        const settleFrame = requestAnimationFrame(invalidateSize);
+        const settleTimer = setTimeout(invalidateSize, 250);
+        const resizeObserver = new ResizeObserver(invalidateSize);
+        resizeObserver.observe(mapElementRef.current);
+        window.addEventListener('resize', invalidateSize);
+
         return () => {
+            cancelAnimationFrame(settleFrame);
+            clearTimeout(settleTimer);
+            resizeObserver.disconnect();
+            window.removeEventListener('resize', invalidateSize);
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
             mapRef.current?.remove();
             mapRef.current = null;
