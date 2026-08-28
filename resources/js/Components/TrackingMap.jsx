@@ -364,7 +364,7 @@ export default function TrackingMap({
                     </div>
                 </div>
             </div>
-            <div ref={mapElementRef} className="h-[360px] w-full sm:h-[430px]" />
+            <div ref={mapElementRef} className="relative z-0 h-[360px] w-full sm:h-[430px]" />
             {mappedBins.length === 0 && (
                 <div className="border-t border-[#e5e7eb] px-4 py-3 text-xs text-[#6b7280]">
                     Belum ada tong dengan koordinat valid untuk ditampilkan di peta.
