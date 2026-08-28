@@ -75,6 +75,7 @@ export default function Monitor({ units: initialUnits }) {
             setUserLocation({
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy ?? null,
                 heading: position.coords.heading ?? null,
             });
             setLocationStatus('Lokasi aktif. Tong diurutkan dari jarak terdekat per unit.');

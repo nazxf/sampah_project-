@@ -106,6 +106,10 @@ export default function TrackingMap({
     const trailPolylineRef = useRef(null);
     const animationFrameRef = useRef(null);
     const lastBinBoundsKey = useRef(null);
+    // Koordinat petugas terakhir yang benar-benar di-commit (bukan posisi animasi
+    // antara). Dipakai sebagai acuan dead-band agar noise GPS saat diam tidak
+    // menggeser marker/peta.
+    const lastUserPosRef = useRef(null);
 
     // Nilai "terbaru" agar effect bins tidak bergantung pada userLocation/bins
     // langsung sehingga render ulang tiap tick GPS tidak memicu rebuild marker.
@@ -227,33 +231,46 @@ export default function TrackingMap({
 
         const newLatLng = [Number(userLocation.latitude), Number(userLocation.longitude)];
         const heading = Number(userLocation.heading);
+        const accuracy = Number(userLocation.accuracy);
 
-        // Trail: hanya tambah poin bila sudah berpindah > ±5 m (kurangi noise GPS).
-        const last = trailRef.current[trailRef.current.length - 1];
-        if (!last || distanceMeters(last, newLatLng) > 5) {
-            trailRef.current = [...trailRef.current, newLatLng];
-            trailPolylineRef.current?.setLatLngs(trailRef.current);
-            setTrailLength(trailRef.current.length);
+        // Dead-band adaptif: gerakkan marker/peta hanya bila berpindah melebihi
+        // ambang (disesuaikan akurasi) → tolak drift GPS saat user diam.
+        const threshold = Math.max(5, Math.min(Number.isFinite(accuracy) ? accuracy : 0, 12));
+        const lastPos = lastUserPosRef.current;
+        const moved = !lastPos || distanceMeters(lastPos, newLatLng) > threshold;
+
+        if (moved) {
+            lastUserPosRef.current = newLatLng;
+
+            // Trail: hanya tambah poin bila benar-benar berpindah (kurangi noise GPS).
+            const last = trailRef.current[trailRef.current.length - 1];
+            if (!last || distanceMeters(last, newLatLng) > threshold) {
+                trailRef.current = [...trailRef.current, newLatLng];
+                trailPolylineRef.current?.setLatLngs(trailRef.current);
+                setTrailLength(trailRef.current.length);
+            }
+
+            // Buat marker petugas saat lokasi pertama, lalu geser halus.
+            if (!userMarkerRef.current) {
+                userMarkerRef.current = L.marker(newLatLng, {
+                    icon: makeUserIcon(heading),
+                    title: 'Lokasi petugas saat ini',
+                    zIndexOffset: 1000,
+                })
+                    .bindPopup('<strong>Lokasi petugas</strong><br>Posisi real-time dari browser.')
+                    .addTo(mapRef.current);
+            } else {
+                animateMarker(userMarkerRef.current.getLatLng(), newLatLng);
+            }
+
+            if (following) {
+                mapRef.current.panTo(newLatLng, { animate: true, duration: 0.6 });
+            }
         }
 
-        // Buat marker petugas saat lokasi pertama, lalu geser halus.
-        if (!userMarkerRef.current) {
-            userMarkerRef.current = L.marker(newLatLng, {
-                icon: makeUserIcon(heading),
-                title: 'Lokasi petugas saat ini',
-                zIndexOffset: 1000,
-            })
-                .bindPopup('<strong>Lokasi petugas</strong><br>Posisi real-time dari browser.')
-                .addTo(mapRef.current);
-        } else {
-            animateMarker(userMarkerRef.current.getLatLng(), newLatLng);
-        }
-
+        // Rotasi panah tetap diperbarui tanpa syarat (berputar saat berbelok di
+        // tempat); saat diam heading biasanya null → panah mengarah ke atas.
         updateUserHeading(heading);
-
-        if (following) {
-            mapRef.current.panTo(newLatLng, { animate: true, duration: 0.6 });
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userLocation, following]);
 
