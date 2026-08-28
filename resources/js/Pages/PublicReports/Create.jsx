@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import QRCode from '@/Components/QRCode';
 import StatusBadge from '@/Components/StatusBadge';
 import { Head, useForm, usePage } from '@inertiajs/react';
+import Swal from 'sweetalert2';
 
 const statusHelp = {
     penuh: 'Petugas akan melihat tong ini sebagai prioritas penuh.',
@@ -11,12 +12,43 @@ const statusHelp = {
 
 export default function Create({ trashBin, jenisMasalahLabels, statusOptions }) {
     const { props } = usePage();
-    const flashSuccess = props.flash?.success;
-    const flashError = props.flash?.error;
-    const flashFotoUrl = props.flash?.foto_url;
+    const flash = props.flash;
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
 
     const [preview, setPreview] = useState(null);
+
+    useEffect(() => {
+        if (flash?.success) {
+            const isDuplicate = /serupa|sudah diterima/i.test(flash.success);
+            const ticket = flash.success.match(/\bLP-\d{8}-\d{4}\b/)?.[0] || '';
+            const ticketHtml = ticket
+                ? `<div style="margin:10px auto 0;width:fit-content;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;font-size:1.05rem;color:#14532d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 18px;letter-spacing:0.02em;">${ticket}</div>`
+                : '';
+            const fotoHtml = flash.foto_url
+                ? `<img src="${flash.foto_url}" alt="Bukti laporan" style="display:block;margin:14px auto 0;max-height:200px;max-width:100%;border-radius:12px;border:1px solid #d1d5db;object-fit:cover;" />`
+                : '';
+            const noteHtml =
+                '<p style="margin:12px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">Petugas akan menindaklanjuti laporan ini. Terima kasih sudah membantu menjaga lingkungan kampus. 🌱</p>';
+
+            Swal.fire({
+                icon: isDuplicate ? 'info' : 'success',
+                title: isDuplicate ? 'Laporan Duplikat' : 'Laporan Terkirim!',
+                html: ticketHtml + fotoHtml + noteHtml,
+                confirmButtonText: 'Selesai',
+                confirmButtonColor: '#16a34a',
+                allowOutsideClick: true,
+                width: 420,
+            });
+        } else if (flash?.error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Kirim',
+                text: flash.error,
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#16a34a',
+            });
+        }
+    }, [flash]);
 
     const form = useForm({
         status_tong: 'penuh',
@@ -72,27 +104,6 @@ export default function Create({ trashBin, jenisMasalahLabels, statusOptions }) 
                         Tanpa login
                     </div>
                 </div>
-
-                {flashSuccess && (
-                    <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-                        {flashSuccess}
-                    </div>
-                )}
-                {flashFotoUrl && (
-                    <div className="mb-4 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3">
-                        <p className="text-sm font-semibold text-primary-700">Bukti foto laporan Anda:</p>
-                        <img
-                            src={flashFotoUrl}
-                            alt="Bukti laporan"
-                            className="mt-2 max-h-56 rounded-lg border border-primary-200 object-contain"
-                        />
-                    </div>
-                )}
-                {flashError && (
-                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-                        {flashError}
-                    </div>
-                )}
 
                 <section className="grid gap-4 lg:grid-cols-[260px,1fr]">
                     <div className="rounded-lg border border-cloud-ash bg-white p-5">

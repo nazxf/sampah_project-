@@ -93,6 +93,7 @@ export default function Index({ histories, trashBins }) {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
                 accuracy,
+                heading: position.coords.heading ?? null,
             };
             setUserLocation(location);
             setLocationAccuracy(accuracy);

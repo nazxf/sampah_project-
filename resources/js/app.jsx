@@ -1,10 +1,6 @@
 import '../css/app.css';
 import './bootstrap';
 
-// React Grab — dimuat di semua environment (dev & production).
-// Untuk mematikannya saat runtime: set window.__REACT_GRAB_DISABLED__ = true.
-import('react-grab');
-
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';

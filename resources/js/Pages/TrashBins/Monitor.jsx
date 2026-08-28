@@ -71,19 +71,29 @@ export default function Monitor({ units: initialUnits }) {
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setUserLocation({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
-                setLocationStatus('Lokasi aktif. Tong diurutkan dari jarak terdekat per unit.');
-            },
-            () => {
-                setLocationStatus('Izin lokasi ditolak atau lokasi tidak tersedia.');
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        const updateLocation = (position) => {
+            setUserLocation({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                heading: position.coords.heading ?? null,
+            });
+            setLocationStatus('Lokasi aktif. Tong diurutkan dari jarak terdekat per unit.');
+        };
+
+        const handleLocationError = () => {
+            setLocationStatus('Izin lokasi ditolak atau lokasi tidak tersedia.');
+        };
+
+        // watchPosition agar ikon petugas ikut bergerak real-time saat petugas berjalan.
+        const watchId = navigator.geolocation.watchPosition(
+            updateLocation,
+            handleLocationError,
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 },
         );
+
+        return () => {
+            navigator.geolocation.clearWatch(watchId);
+        };
     }, [isPetugas]);
 
     const units = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -30,24 +30,65 @@ const statusLabels = {
     sudah_diangkut: 'Sudah diangkut',
 };
 
-function makeBinIcon(status, selected) {
+function makeBinIcon(status) {
     const color = statusColors[status] || '#4b5563';
-    const ring = selected ? '0 0 0 5px rgba(22, 163, 74, 0.25)' : '0 2px 8px rgba(15, 23, 42, 0.25)';
 
     return L.divIcon({
         className: 'tracking-map-bin-icon',
-        html: `<span style="display:block;width:${selected ? 20 : 16}px;height:${selected ? 20 : 16}px;border-radius:999px;background:${color};border:3px solid white;box-shadow:${ring};"></span>`,
-        iconSize: [selected ? 26 : 22, selected ? 26 : 22],
-        iconAnchor: [selected ? 13 : 11, selected ? 13 : 11],
+        html: `<span style="display:block;width:16px;height:16px;border-radius:999px;background:${color};border:3px solid white;box-shadow:0 2px 8px rgba(15, 23, 42, 0.25);"></span>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
     });
 }
 
-const userIcon = L.divIcon({
-    className: 'tracking-map-user-icon',
-    html: '<span style="display:block;width:18px;height:18px;border-radius:999px;background:#0ea5e9;border:3px solid white;box-shadow:0 0 0 6px rgba(14, 165, 233, 0.22), 0 2px 10px rgba(15, 23, 42, 0.28);"></span>',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-});
+// Marker petugas: panah navigasi (penunjuk arah) yang berputar mengikuti heading
+// GPS + ring pulse, dan bergerak halus mengikuti posisi petugas.
+function makeUserIcon(heading = 0) {
+    const deg = Number.isFinite(heading) ? heading : 0;
+    return L.divIcon({
+        className: 'tracking-map-user-icon',
+        html: `<div class="tm-user">
+                 <span class="tm-user-arrow">
+                   <svg class="tm-user-svg" style="transform: rotate(${deg}deg);" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                     <path d="M12 2.25 19.25 21.5 12 17.75 4.75 21.5Z"/>
+                   </svg>
+                 </span>
+                 <span class="tm-pulse"></span>
+               </div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+    });
+}
+
+// Ikon target angkut: tong terpilih ditandai lingkaran oranye + glyph + pulse.
+function makeTargetIcon() {
+    return L.divIcon({
+        className: 'tracking-map-target-icon',
+        html: `<div class="tm-target">
+                 <span class="tm-target-core">
+                   <svg class="tm-target-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                     <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/>
+                   </svg>
+                 </span>
+                 <span class="tm-pulse"></span>
+               </div>`,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
+    });
+}
+
+const distanceMeters = (a, b) => {
+    const toRad = (v) => (v * Math.PI) / 180;
+    const R = 6371000;
+    const dLat = toRad(b[0] - a[0]);
+    const dLng = toRad(b[1] - a[1]);
+    const la1 = toRad(a[0]);
+    const la2 = toRad(b[0]);
+    const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+};
 
 export default function TrackingMap({
     bins = [],
@@ -59,14 +100,43 @@ export default function TrackingMap({
 }) {
     const mapElementRef = useRef(null);
     const mapRef = useRef(null);
-    const layerRef = useRef(null);
-    // onSelectBin biasanya arrow inline (identitas baru tiap render); simpan di ref
-    // agar tidak jadi dependency effect yang memicu fitBounds berulang.
+    const binsLayerRef = useRef(null);
+    const userMarkerRef = useRef(null);
+    const trailRef = useRef([]);
+    const trailPolylineRef = useRef(null);
+    const animationFrameRef = useRef(null);
+    const lastBinBoundsKey = useRef(null);
+
+    // Nilai "terbaru" agar effect bins tidak bergantung pada userLocation/bins
+    // langsung sehingga render ulang tiap tick GPS tidak memicu rebuild marker.
+    const binsRef = useRef(bins);
+    binsRef.current = bins;
+    const userLocationRef = useRef(userLocation);
+    userLocationRef.current = userLocation;
     const onSelectBinRef = useRef(onSelectBin);
     onSelectBinRef.current = onSelectBin;
-    const lastBoundsKey = useRef(null);
+
+    const [following, setFollowing] = useState(true);
+    const [trailLength, setTrailLength] = useState(0);
 
     const mappedBins = useMemo(() => bins.filter(hasCoordinates), [bins]);
+
+    // Tanda tangan stabil tong (id+status+lat+lng). Di-sort() dulu supaya TIDAK
+    // tergantung urutan array. Prop bins di halaman petugas disusun ulang (ordered
+    // by jarak) setiap tick GPS, jadi key berurut akan berubah tiap tick (memicu
+    // rebuild marker + fitBounds berulang). Sorting membuat key tetap selama set
+    // tong tidak berubah → mencegah kedip & reset pan/zoom.
+    const binsKey = useMemo(
+        () => mappedBins.map((b) => `${b.id}:${b.status}:${Number(b.latitude)}:${Number(b.longitude)}`).sort().join('|'),
+        [mappedBins],
+    );
+
+    // Himpunan titik tong (id+koordinat saja) → gerbang fitBounds. Berubahnya
+    // status/urutan TIDAK mengubah pointsKey, sehingga viewport user tidak di-reset.
+    const pointsKey = useMemo(
+        () => mappedBins.map((b) => `${b.id}:${Number(b.latitude)}:${Number(b.longitude)}`).sort().join('|'),
+        [mappedBins],
+    );
 
     useEffect(() => {
         if (!mapElementRef.current || mapRef.current) return;
@@ -81,28 +151,43 @@ export default function TrackingMap({
             maxZoom: 19,
         }).addTo(mapRef.current);
 
-        layerRef.current = L.layerGroup().addTo(mapRef.current);
+        binsLayerRef.current = L.layerGroup().addTo(mapRef.current);
+
+        trailPolylineRef.current = L.polyline([], {
+            color: '#0ea5e9',
+            weight: 3,
+            opacity: 0.75,
+            dashArray: '1 8',
+            lineCap: 'round',
+            lineJoin: 'round',
+        }).addTo(mapRef.current);
 
         return () => {
+            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
             mapRef.current?.remove();
             mapRef.current = null;
-            layerRef.current = null;
+            binsLayerRef.current = null;
+            trailPolylineRef.current = null;
         };
     }, []);
 
+    // Rebuild marker tong hanya saat data tong (signature) atau pilihan berubah.
     useEffect(() => {
-        if (!mapRef.current || !layerRef.current) return;
+        if (!mapRef.current || !binsLayerRef.current) return;
 
-        layerRef.current.clearLayers();
+        const currentBins = binsRef.current.filter(hasCoordinates);
+        binsLayerRef.current.clearLayers();
         const bounds = [];
 
-        mappedBins.forEach((bin) => {
+        currentBins.forEach((bin) => {
             const latLng = [Number(bin.latitude), Number(bin.longitude)];
             bounds.push(latLng);
+            const isSelected = String(bin.id) === String(selectedBinId);
 
             const marker = L.marker(latLng, {
-                icon: makeBinIcon(bin.status, String(bin.id) === String(selectedBinId)),
+                icon: isSelected ? makeTargetIcon() : makeBinIcon(bin.status),
                 title: `${bin.kode || ''} ${bin.nama || ''}`.trim(),
+                zIndexOffset: isSelected ? 500 : 0,
             });
 
             marker.bindPopup(`
@@ -113,28 +198,99 @@ export default function TrackingMap({
             `);
 
             marker.on('click', () => onSelectBinRef.current?.(bin));
-            marker.addTo(layerRef.current);
+            marker.addTo(binsLayerRef.current);
         });
 
-        if (hasCoordinates(userLocation)) {
-            const latLng = [Number(userLocation.latitude), Number(userLocation.longitude)];
-            bounds.push(latLng);
-            L.marker(latLng, {
-                icon: userIcon,
-                title: 'Lokasi petugas saat ini',
-            })
-                .bindPopup('<strong>Lokasi petugas</strong><br>Posisi dari browser saat ini.')
-                .addTo(layerRef.current);
+        // fitBounds hanya dari koordinat tong (bukan posisi petugas) supaya tick GPS
+        // tidak terus-menerus me-reset pan/zoom pengguna. Refit hanya saat himpunan
+        // titik tong benar-benar berubah (ditambah/dihapus) — bukan saat urutan/status
+        // berubah — sehingga zoom-in user tidak tersentak turun.
+        if (bounds.length === 0) {
+            const loc = userLocationRef.current;
+            if (hasCoordinates(loc)) {
+                mapRef.current.setView([Number(loc.latitude), Number(loc.longitude)], 16, { animate: true });
+            }
+        } else if (pointsKey !== lastBinBoundsKey.current) {
+            lastBinBoundsKey.current = pointsKey;
+            mapRef.current.fitBounds(bounds, {
+                padding: [28, 28],
+                maxZoom: selectedBinId ? 18 : 16,
+                animate: true,
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [binsKey, pointsKey, selectedBinId]);
+
+    // Ikut petugas: animasikan marker petugas + gambar jejak + pan mengikuti.
+    useEffect(() => {
+        if (!mapRef.current || !hasCoordinates(userLocation)) return;
+
+        const newLatLng = [Number(userLocation.latitude), Number(userLocation.longitude)];
+        const heading = Number(userLocation.heading);
+
+        // Trail: hanya tambah poin bila sudah berpindah > ±5 m (kurangi noise GPS).
+        const last = trailRef.current[trailRef.current.length - 1];
+        if (!last || distanceMeters(last, newLatLng) > 5) {
+            trailRef.current = [...trailRef.current, newLatLng];
+            trailPolylineRef.current?.setLatLngs(trailRef.current);
+            setTrailLength(trailRef.current.length);
         }
 
-        // fitBounds hanya saat kumpulan titik berubah, bukan tiap render/seleksi/tick GPS,
-        // supaya pan/zoom pengguna tidak ter-reset terus-menerus.
-        const boundsKey = bounds.map((p) => p.join(',')).join('|');
-        if (bounds.length > 0 && boundsKey !== lastBoundsKey.current) {
-            lastBoundsKey.current = boundsKey;
-            mapRef.current.fitBounds(bounds, { padding: [28, 28], maxZoom: selectedBinId ? 18 : 16 });
+        // Buat marker petugas saat lokasi pertama, lalu geser halus.
+        if (!userMarkerRef.current) {
+            userMarkerRef.current = L.marker(newLatLng, {
+                icon: makeUserIcon(heading),
+                title: 'Lokasi petugas saat ini',
+                zIndexOffset: 1000,
+            })
+                .bindPopup('<strong>Lokasi petugas</strong><br>Posisi real-time dari browser.')
+                .addTo(mapRef.current);
+        } else {
+            animateMarker(userMarkerRef.current.getLatLng(), newLatLng);
         }
-    }, [mappedBins, selectedBinId, userLocation]);
+
+        updateUserHeading(heading);
+
+        if (following) {
+            mapRef.current.panTo(newLatLng, { animate: true, duration: 0.6 });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userLocation, following]);
+
+    const animateMarker = (from, to) => {
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        const startTime = performance.now();
+        const duration = 700;
+
+        const step = (now) => {
+            const t = Math.min(1, (now - startTime) / duration);
+            const lat = from.lat + (to[0] - from.lat) * t;
+            const lng = from.lng + (to[1] - from.lng) * t;
+            userMarkerRef.current?.setLatLng([lat, lng]);
+            if (t < 1) {
+                animationFrameRef.current = requestAnimationFrame(step);
+            } else {
+                animationFrameRef.current = null;
+                userMarkerRef.current?.setLatLng(to);
+            }
+        };
+
+        animationFrameRef.current = requestAnimationFrame(step);
+    };
+
+    // Putar panah petugas mengikuti heading GPS (derajat, 0 = utara).
+    const updateUserHeading = (heading) => {
+        if (!userMarkerRef.current) return;
+        const deg = Number.isFinite(heading) ? heading : 0;
+        const svg = userMarkerRef.current.getElement()?.querySelector('.tm-user-svg');
+        if (svg) svg.style.transform = `rotate(${deg}deg)`;
+    };
+
+    const resetTrail = () => {
+        trailRef.current = [];
+        trailPolylineRef.current?.setLatLngs([]);
+        setTrailLength(0);
+    };
 
     return (
         <section className="overflow-hidden rounded-lg border border-[#d1d5db] bg-white">
@@ -143,9 +299,34 @@ export default function TrackingMap({
                     <h2 className="text-sm font-semibold text-[#111827]">{title}</h2>
                     <p className="mt-0.5 text-xs text-[#6b7280]">{subtitle}</p>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-[#6b7280]">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
                     <span>{mappedBins.length} titik tong</span>
-                    {hasCoordinates(userLocation) && <span>Lokasi petugas aktif</span>}
+                    {hasCoordinates(userLocation) && <span className="font-medium text-[#0ea5e9]">Lokasi petugas aktif</span>}
+                    {trailLength > 1 && <span>Jejak {trailLength} titik</span>}
+                    <div className="flex gap-1">
+                        <button
+                            type="button"
+                            onClick={() => setFollowing((v) => !v)}
+                            className={`rounded-full border px-2.5 py-1 transition ${
+                                following
+                                    ? 'border-[#0ea5e9] bg-[#0ea5e9] text-white'
+                                    : 'border-[#d1d5db] text-[#6b7280] hover:bg-[#f3f4f6]'
+                            }`}
+                            title="Peta otomatis mengikuti posisi petugas"
+                        >
+                            {following ? 'Ikuti: ON' : 'Ikuti: OFF'}
+                        </button>
+                        {trailLength > 1 && (
+                            <button
+                                type="button"
+                                onClick={resetTrail}
+                                className="rounded-full border border-[#d1d5db] px-2.5 py-1 text-[#6b7280] transition hover:bg-[#f3f4f6]"
+                                title="Hapus jejak perjalanan petugas"
+                            >
+                                Reset jejak
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
             <div ref={mapElementRef} className="h-[360px] w-full sm:h-[430px]" />
