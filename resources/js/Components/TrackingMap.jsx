@@ -388,7 +388,10 @@ export default function TrackingMap({
 
         fetchDrivingRoute(origin, dest, controller.signal)
             .then((coords) => {
-                if (!controller.signal.aborted) line.setLatLngs(coords);
+                // Ujung rute di-snap ke jalan oleh router; tambahkan koordinat
+                // persis origin & dest agar garis benar-benar menyambung ke ikon
+                // petugas dan ikon tong. Bagian tengah tetap mengikuti jalan.
+                if (!controller.signal.aborted) line.setLatLngs([origin, ...coords, dest]);
             })
             .catch(() => {
                 // Gagal (offline/CORS) → biarkan garis lurus solid sebagai fallback.
