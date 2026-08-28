@@ -90,6 +90,24 @@ const distanceMeters = (a, b) => {
     return 2 * R * Math.asin(Math.sqrt(h));
 };
 
+// Ambil rute mengikuti jalan dengan profil PEJALAN KAKI (foot) dari FOSSGIS
+// routing (routing.openstreetmap.de, CORS diizinkan). Format OSRM-compatible;
+// geometri dikembalikan [lon,lat] dan dikonversi ke [lat,lng] untuk Leaflet.
+// Lempar error agar caller bisa fallback ke garis lurus.
+const fetchDrivingRoute = async (origin, dest, signal) => {
+    const a = `${origin[1]},${origin[0]}`;
+    const b = `${dest[1]},${dest[0]}`;
+    const url = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a};${b}?overview=full&geometries=geojson`;
+    const res = await fetch(url, { signal });
+    if (!res.ok) throw new Error('route request failed');
+    const data = await res.json();
+    const coords = data?.routes?.[0]?.geometry?.coordinates;
+    if (data.code !== 'Ok' || !coords || !coords.length) {
+        throw new Error('no route found');
+    }
+    return coords.map(([lon, lat]) => [lat, lon]);
+};
+
 export default function TrackingMap({
     bins = [],
     userLocation = null,
@@ -105,6 +123,9 @@ export default function TrackingMap({
     const trailRef = useRef([]);
     const trailPolylineRef = useRef(null);
     const routeLineRef = useRef(null);
+    const routeAbortRef = useRef(null);
+    const lastRouteOriginRef = useRef(null);
+    const lastRouteDestIdRef = useRef(null);
     const animationFrameRef = useRef(null);
     const lastBinBoundsKey = useRef(null);
     // Koordinat petugas terakhir yang benar-benar di-commit (bukan posisi animasi
@@ -194,8 +215,7 @@ export default function TrackingMap({
         routeLineRef.current = L.polyline([], {
             color: '#f59e0b',
             weight: 3,
-            opacity: 0.85,
-            dashArray: '6 6',
+            opacity: 0.9,
             lineCap: 'round',
             lineJoin: 'round',
         }).addTo(mapRef.current);
@@ -224,6 +244,7 @@ export default function TrackingMap({
             mapRef.current = null;
             binsLayerRef.current = null;
             trailPolylineRef.current = null;
+            routeAbortRef.current?.abort();
             routeLineRef.current = null;
         };
     }, []);
@@ -327,21 +348,52 @@ export default function TrackingMap({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userLocation, following]);
 
-    // Garis otomatis posisi petugas → tong terdekat (atau tong pilihan).
-    // Mengikuti posisi petugas secara real-time; kosong saat tidak ada target.
+    // Garis rute posisi petugas → tong terdekat (atau tong pilihan), mengikuti
+    // arah jalan via OSRM, solid (bukan putus-putus). Di-throttle: hanya fetch
+    // rute saat tujuan berubah atau petugas bergerak >20m. Garis lurus dipakai
+    // hanya sebagai placeholder ketika rute belum tersedia / permintaan gagal.
     useEffect(() => {
         const line = routeLineRef.current;
         const loc = userLocationRef.current;
         const bin = binsRef.current.find((b) => String(b.id) === targetBinId);
 
         if (!line || !hasCoordinates(loc) || !bin || !hasCoordinates(bin)) {
+            routeAbortRef.current?.abort();
+            lastRouteOriginRef.current = null;
+            lastRouteDestIdRef.current = null;
             line?.setLatLngs([]);
             return;
         }
-        line.setLatLngs([
-            [Number(loc.latitude), Number(loc.longitude)],
-            [Number(bin.latitude), Number(bin.longitude)],
-        ]);
+
+        const origin = [Number(loc.latitude), Number(loc.longitude)];
+        const dest = [Number(bin.latitude), Number(bin.longitude)];
+
+        const lastOrigin = lastRouteOriginRef.current;
+        const destChanged = lastRouteDestIdRef.current !== targetBinId;
+        const movedEnough = !lastOrigin || distanceMeters(lastOrigin, origin) > 20;
+
+        // Tujuan baru → garis lurus sementara sampai rute jalan tiba.
+        if (destChanged) {
+            line.setLatLngs([origin, dest]);
+        }
+
+        // Throttle: hindari request OSRM setiap tick GPS.
+        if (!destChanged && !movedEnough) return;
+
+        routeAbortRef.current?.abort();
+        const controller = new AbortController();
+        routeAbortRef.current = controller;
+        lastRouteOriginRef.current = origin;
+        lastRouteDestIdRef.current = targetBinId;
+
+        fetchDrivingRoute(origin, dest, controller.signal)
+            .then((coords) => {
+                if (!controller.signal.aborted) line.setLatLngs(coords);
+            })
+            .catch(() => {
+                // Gagal (offline/CORS) → biarkan garis lurus solid sebagai fallback.
+                if (!controller.signal.aborted) line.setLatLngs([origin, dest]);
+            });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [targetBinId, userLocation]);
 
