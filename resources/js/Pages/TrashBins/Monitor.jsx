@@ -55,16 +55,19 @@ export default function Monitor({ units: initialUnits }) {
     const userRole = pageProps.auth.user?.role;
     const isPetugas = userRole === 'petugas';
     const isAdmin = userRole === 'super_admin' || userRole === 'admin_unit';
+    // Super admin memakai alur peta sama seperti petugas (GPS + rute prioritas).
+    const isSuperAdmin = userRole === 'super_admin';
+    const usesGps = isPetugas || isSuperAdmin;
 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [unitFilter, setUnitFilter] = useState('');
     const [selectedMapBinId, setSelectedMapBinId] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
-    const [locationStatus, setLocationStatus] = useState('Mendeteksi lokasi petugas...');
+    const [locationStatus, setLocationStatus] = useState('Mendeteksi lokasi...');
 
     useEffect(() => {
-        if (!isPetugas) return;
+        if (!usesGps) return;
 
         if (!navigator.geolocation) {
             setLocationStatus('Browser tidak mendukung deteksi lokasi.');
@@ -95,7 +98,7 @@ export default function Monitor({ units: initialUnits }) {
         return () => {
             navigator.geolocation.clearWatch(watchId);
         };
-    }, [isPetugas]);
+    }, [usesGps]);
 
     const units = useMemo(() => {
         if (!initialUnits) return [];
@@ -206,7 +209,7 @@ export default function Monitor({ units: initialUnits }) {
                 </div>
 
                 {/* Unit Groups */}
-                {isPetugas && (
+                {usesGps && (
                     <div className="rounded-xl bg-white border border-[#e5e7eb] px-4 py-3 text-xs text-[#6b7280]">
                         {locationStatus}
                     </div>
@@ -217,10 +220,14 @@ export default function Monitor({ units: initialUnits }) {
                     userLocation={userLocation}
                     selectedBinId={selectedMapBinId}
                     onSelectBin={(bin) => setSelectedMapBinId(bin.id)}
+                    priorityRoute={isSuperAdmin}
+                    showLabels
                     title={isPetugas ? 'Peta Tracking Petugas' : 'Peta Monitoring Tong'}
                     subtitle={isPetugas
                         ? 'Lihat posisi petugas, titik tong terdekat, dan prioritas angkut.'
-                        : 'Lihat sebaran titik tong berdasarkan filter yang aktif.'}
+                        : isSuperAdmin
+                            ? 'Garis rute menghubungkan tong prioritas: penuh & setengah penuh (kosong tampil tanpa rute).'
+                            : 'Lihat sebaran titik tong berdasarkan filter yang aktif.'}
                 />
 
                 {units.length > 0 ? (

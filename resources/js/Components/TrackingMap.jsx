@@ -91,13 +91,16 @@ const distanceMeters = (a, b) => {
 };
 
 // Ambil rute mengikuti jalan dengan profil PEJALAN KAKI (foot) dari FOSSGIS
-// routing (routing.openstreetmap.de, CORS diizinkan). Format OSRM-compatible;
+// routing (routing.openstreetmap.de, CORS diizinkan). Mendukung multi-waypoint:
+// satu permintaan untuk banyak titik berurutan. Format OSRM-compatible;
 // geometri dikembalikan [lon,lat] dan dikonversi ke [lat,lng] untuk Leaflet.
+// Setiap titik input disisipkan PERSIS ke geometri pada vertex terdekat ke
+// lokasi snap waypoint-nya, agar garis benar-benar menyentuh ikon tiap tong
+// (bukan berhenti di titik snap di jalan yang bisa meleset belasan meter).
 // Lempar error agar caller bisa fallback ke garis lurus.
-const fetchDrivingRoute = async (origin, dest, signal) => {
-    const a = `${origin[1]},${origin[0]}`;
-    const b = `${dest[1]},${dest[0]}`;
-    const url = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a};${b}?overview=full&geometries=geojson`;
+const fetchRoute = async (points, signal) => {
+    const coordStr = points.map(([lat, lng]) => `${lng},${lat}`).join(';');
+    const url = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${coordStr}?overview=full&geometries=geojson`;
     const res = await fetch(url, { signal });
     if (!res.ok) throw new Error('route request failed');
     const data = await res.json();
@@ -105,7 +108,41 @@ const fetchDrivingRoute = async (origin, dest, signal) => {
     if (data.code !== 'Ok' || !coords || !coords.length) {
         throw new Error('no route found');
     }
-    return coords.map(([lon, lat]) => [lat, lon]);
+    const latlngs = coords.map(([lon, lat]) => [lat, lon]);
+
+    // Indeks vertex tempat tiap waypoint ter-snap, dicari berurutan sepanjang
+    // rute (waypoint k selalu sebelum waypoint k+1).
+    const snappedIdx = [];
+    let from = 0;
+    for (const wp of data.waypoints || []) {
+        let best = from;
+        let bestD = Infinity;
+        for (let i = from; i < latlngs.length; i++) {
+            const dLat = latlngs[i][0] - wp.location[1];
+            const dLng = latlngs[i][1] - wp.location[0];
+            const d = dLat * dLat + dLng * dLng;
+            if (d < bestD) {
+                bestD = d;
+                best = i;
+            }
+        }
+        snappedIdx.push(best);
+        from = Math.min(best + 1, latlngs.length - 1);
+    }
+    if (!snappedIdx.length || snappedIdx.length !== points.length) {
+        // Respons tak lengkap → sisipkan hanya ujung agar garis tetap menyambung.
+        return [points[0], ...latlngs, points[points.length - 1]];
+    }
+
+    // Susun ulang: titik persis tiap tong diselipkan di batas antar leg.
+    const line = [points[0]];
+    for (let k = 0; k < points.length; k++) {
+        const end = k + 1 < points.length ? snappedIdx[k + 1] : latlngs.length - 1;
+        if (k > 0 && k < points.length - 1) line.push(points[k]);
+        for (let i = snappedIdx[k]; i <= end; i++) line.push(latlngs[i]);
+    }
+    line.push(points[points.length - 1]);
+    return line;
 };
 
 export default function TrackingMap({
@@ -115,6 +152,8 @@ export default function TrackingMap({
     onSelectBin,
     title = 'Peta Tracking',
     subtitle = 'Pantau titik tong dan posisi petugas.',
+    priorityRoute = false,
+    showLabels = false,
 }) {
     const mapElementRef = useRef(null);
     const mapRef = useRef(null);
@@ -126,6 +165,8 @@ export default function TrackingMap({
     const routeAbortRef = useRef(null);
     const lastRouteOriginRef = useRef(null);
     const lastRouteDestIdRef = useRef(null);
+    // Signature titik rute terakhir untuk mode rute prioritas (multi-waypoint).
+    const lastRouteKeyRef = useRef(null);
     const animationFrameRef = useRef(null);
     const lastBinBoundsKey = useRef(null);
     // Koordinat petugas terakhir yang benar-benar di-commit (bukan posisi animasi
@@ -184,9 +225,47 @@ export default function TrackingMap({
         return best ? String(best.id) : null;
     }, [mappedBins, userLocation]);
 
-    // Tong target = pilihan manual jika ada, jika tidak → otomatis tong terdekat.
-    const targetBinId =
-        selectedBinId != null ? String(selectedBinId) : nearestBinId;
+    // Mode rute prioritas: hanya tong PENUH & SETENGAH PENUH yang masuk rute;
+    // tong kosong/sudah diangkut tetap tampil sebagai marker tanpa garis rute.
+    // Urutan pemberhentian memakai greedy nearest-neighbor: mulai dari posisi
+    // petugas/super admin bila GPS aktif, jika tidak dari tong prioritas
+    // pertama (urutan by id agar deterministik). Hasil dipakai sebagai satu
+    // garis rute tersambung (bukan garis terpisah per tong).
+    const priorityStops = useMemo(() => {
+        if (!priorityRoute) return [];
+        const remaining = mappedBins
+            .filter((b) => b.status === 'penuh' || b.status === 'setengah_penuh')
+            .sort((a, b) => Number(a.id) - Number(b.id) || String(a.id).localeCompare(String(b.id)));
+        if (remaining.length <= 1) return remaining;
+
+        let current = hasCoordinates(userLocation)
+            ? [Number(userLocation.latitude), Number(userLocation.longitude)]
+            : [Number(remaining[0].latitude), Number(remaining[0].longitude)];
+        const ordered = [];
+        while (remaining.length) {
+            let bestIdx = 0;
+            let bestDist = Infinity;
+            remaining.forEach((b, i) => {
+                const d = distanceMeters(current, [Number(b.latitude), Number(b.longitude)]);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestIdx = i;
+                }
+            });
+            const [next] = remaining.splice(bestIdx, 1);
+            ordered.push(next);
+            current = [Number(next.latitude), Number(next.longitude)];
+        }
+        return ordered;
+    }, [priorityRoute, mappedBins, userLocation]);
+
+    // Tong yang disorot ikon target = pilihan manual (klik) jika ada; otomatis
+    // tong terdekat (mode biasa) atau pemberhentian pertama rute prioritas.
+    const targetBinId = selectedBinId != null
+        ? String(selectedBinId)
+        : (priorityRoute
+            ? (priorityStops[0] ? String(priorityStops[0].id) : null)
+            : nearestBinId);
 
     useEffect(() => {
         if (!mapElementRef.current || mapRef.current) return;
@@ -213,7 +292,8 @@ export default function TrackingMap({
         }).addTo(mapRef.current);
 
         routeLineRef.current = L.polyline([], {
-            color: '#f59e0b',
+            // Merah = warna rute prioritas (senada marker tong penuh).
+            color: '#dc2626',
             weight: 3,
             opacity: 0.9,
             lineCap: 'round',
@@ -268,6 +348,24 @@ export default function TrackingMap({
                 zIndexOffset: isSelected ? 500 : 0,
             });
 
+            // Label permanen nama tong di samping marker (+ persentase bila
+            // ada data sensor), supaya tiap titik langsung terbaca tanpa klik.
+            if (showLabels) {
+                const persen = bin.persentase_kepenuhan;
+                marker.bindTooltip(
+                    `<strong>${esc(bin.nama || bin.kode || 'Tong')}</strong>` +
+                    (persen !== null && persen !== undefined
+                        ? `<br>${Math.round(Number(persen))}%`
+                        : ''),
+                    {
+                        permanent: true,
+                        direction: 'right',
+                        offset: [10, 0],
+                        className: 'tracking-map-bin-label',
+                    },
+                );
+            }
+
             marker.bindPopup(`
                 <strong>${esc(bin.kode || '-')} - ${esc(bin.nama || '-')}</strong><br>
                 ${esc(bin.unit_nama || bin.unit?.nama || '-')}<br>
@@ -292,7 +390,10 @@ export default function TrackingMap({
             lastBinBoundsKey.current = pointsKey;
             mapRef.current.fitBounds(bounds, {
                 padding: [28, 28],
-                maxZoom: targetBinId ? 18 : 16,
+                // Mode prioritas: zoom-in maksimal hanya saat user memilih tong
+                // secara manual (bukan karena sorotan otomatis pemberhentian
+                // pertama), agar viewport awal tidak menyentak.
+                maxZoom: (priorityRoute ? selectedBinId != null : targetBinId != null) ? 18 : 16,
                 animate: true,
             });
         }
@@ -349,10 +450,13 @@ export default function TrackingMap({
     }, [userLocation, following]);
 
     // Garis rute posisi petugas → tong terdekat (atau tong pilihan), mengikuti
-    // arah jalan via OSRM, solid (bukan putus-putus). Di-throttle: hanya fetch
-    // rute saat tujuan berubah atau petugas bergerak >20m. Garis lurus dipakai
-    // hanya sebagai placeholder ketika rute belum tersedia / permintaan gagal.
+    // arah jalan via OSRM, solid (bukan putus-putus). Hanya aktif di mode
+    // BIASA (bukan rute prioritas). Di-throttle: hanya fetch rute saat tujuan
+    // berubah atau petugas bergerak >20m. Garis lurus dipakai hanya sebagai
+    // placeholder ketika rute belum tersedia / permintaan gagal.
     useEffect(() => {
+        if (priorityRoute) return;
+
         const line = routeLineRef.current;
         const loc = userLocationRef.current;
         const bin = binsRef.current.find((b) => String(b.id) === targetBinId);
@@ -386,19 +490,85 @@ export default function TrackingMap({
         lastRouteOriginRef.current = origin;
         lastRouteDestIdRef.current = targetBinId;
 
-        fetchDrivingRoute(origin, dest, controller.signal)
+        fetchRoute([origin, dest], controller.signal)
             .then((coords) => {
-                // Ujung rute di-snap ke jalan oleh router; tambahkan koordinat
-                // persis origin & dest agar garis benar-benar menyambung ke ikon
-                // petugas dan ikon tong. Bagian tengah tetap mengikuti jalan.
-                if (!controller.signal.aborted) line.setLatLngs([origin, ...coords, dest]);
+                // fetchRoute sudah menyisipkan koordinat persis origin & dest,
+                // jadi garis benar-benar menyambung ke ikon petugas dan ikon
+                // tong. Bagian tengah tetap mengikuti jalan.
+                if (!controller.signal.aborted) line.setLatLngs(coords);
             })
             .catch(() => {
                 // Gagal (offline/CORS) → biarkan garis lurus solid sebagai fallback.
                 if (!controller.signal.aborted) line.setLatLngs([origin, dest]);
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [targetBinId, userLocation]);
+    }, [targetBinId, userLocation, priorityRoute]);
+
+    // Mode RUTE PRIORITAS: satu garis tersambung dari posisi petugas/super
+    // admin (bila GPS aktif) menyusuri jalan melewati semua tong penuh &
+    // setengah penuh sesuai urutan nearest-neighbor. Pilihan tong (klik)
+    // hanya menyorot marker, tidak mengubah rute. Throttle sama seperti mode
+    // biasa: fetch ulang hanya saat susunan titik berubah atau petugas
+    // bergerak >20m; garis lurus dipakai sementara / saat permintaan gagal.
+    useEffect(() => {
+        if (!priorityRoute) return undefined;
+
+        const line = routeLineRef.current;
+        if (!line) return undefined;
+
+        const loc = userLocationRef.current;
+        const origin = hasCoordinates(loc)
+            ? [Number(loc.latitude), Number(loc.longitude)]
+            : null;
+        const stopCoords = priorityStops.map((b) => [Number(b.latitude), Number(b.longitude)]);
+        const points = origin ? [origin, ...stopCoords] : stopCoords;
+
+        // Tidak ada pasangan titik untuk dijadikan rute → bersihkan garis.
+        if (points.length < 2) {
+            routeAbortRef.current?.abort();
+            lastRouteKeyRef.current = null;
+            lastRouteOriginRef.current = null;
+            line.setLatLngs([]);
+            return undefined;
+        }
+
+        const key = priorityStops
+            .map((b) => `${b.id}:${Number(b.latitude)}:${Number(b.longitude)}`)
+            .join('|');
+        const keyChanged = lastRouteKeyRef.current !== key;
+        const lastOrigin = lastRouteOriginRef.current;
+        const movedEnough = origin
+            ? (!lastOrigin || distanceMeters(lastOrigin, origin) > 20)
+            : Boolean(lastOrigin);
+
+        // Susunan titik baru → garis lurus sementara sampai rute jalan tiba.
+        if (keyChanged) {
+            line.setLatLngs(points);
+        }
+
+        if (!keyChanged && !movedEnough) return undefined;
+
+        routeAbortRef.current?.abort();
+        const controller = new AbortController();
+        routeAbortRef.current = controller;
+        lastRouteKeyRef.current = key;
+        lastRouteOriginRef.current = origin;
+
+        fetchRoute(points, controller.signal)
+            .then((coords) => {
+                // fetchRoute sudah menyisipkan koordinat persis setiap titik
+                // (posisi petugas & tiap tong prioritas) ke geometri, sehingga
+                // garis menyentuh semua ikon yang dilaluinya.
+                if (!controller.signal.aborted) line.setLatLngs(coords);
+            })
+            .catch(() => {
+                // Gagal (offline/CORS) → fallback garis lurus antar titik rute.
+                if (!controller.signal.aborted) line.setLatLngs(points);
+            });
+
+        return undefined;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [priorityRoute, priorityStops, userLocation]);
 
     const animateMarker = (from, to) => {
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -472,7 +642,29 @@ export default function TrackingMap({
                     </div>
                 </div>
             </div>
-            <div ref={mapElementRef} className="relative z-0 h-[360px] w-full sm:h-[430px]" />
+            <div className="relative">
+                <div ref={mapElementRef} className="relative z-0 h-[360px] w-full sm:h-[430px]" />
+                {priorityRoute && mappedBins.length > 0 && (
+                    <div className="pointer-events-none absolute bottom-3 left-3 z-[800] max-w-[230px] rounded-lg border border-[#e5e7eb] bg-white/95 px-3 py-2 text-[11px] leading-relaxed text-[#374151] shadow-md">
+                        <p className="mb-1 font-semibold text-[#111827]">Legenda</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1">
+                            {['penuh', 'setengah_penuh', 'kosong', 'sudah_diangkut'].map((s) => (
+                                <span key={s} className="flex items-center gap-1.5">
+                                    <span
+                                        className="inline-block h-2.5 w-2.5 rounded-full border border-white shadow-sm"
+                                        style={{ background: statusColors[s] }}
+                                    />
+                                    {statusLabels[s]}
+                                </span>
+                            ))}
+                        </div>
+                        <span className="mt-1.5 flex items-center gap-1.5">
+                            <span className="inline-block h-[3px] w-5 rounded bg-[#dc2626]" />
+                            Rute prioritas (penuh &amp; setengah penuh)
+                        </span>
+                    </div>
+                )}
+            </div>
             {mappedBins.length === 0 && (
                 <div className="border-t border-[#e5e7eb] px-4 py-3 text-xs text-[#6b7280]">
                     Belum ada tong dengan koordinat valid untuk ditampilkan di peta.
