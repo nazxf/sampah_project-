@@ -69,19 +69,19 @@ class DatabaseSeeder extends Seeder
         $umci = Unit::create(['nama' => 'UMCI Kampus B', 'kampus' => 'Kampus B', 'jenis' => 'Umci', 'alamat' => 'Jl. Pendidikan No. 7, Kampus B', 'deskripsi' => 'Unit MCI']);
 
         // Kampus A
-        $smk1 = Unit::create(['nama' => 'SMK Muhammadiyah 1 Cileungsi', 'kampus' => 'Kampus A', 'jenis' => 'SMK', 'alamat' => 'Kampus A, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 1 Cileungsi']);
-        $smk3 = Unit::create(['nama' => 'SMK Muhammadiyah 3 Cileungsi', 'kampus' => 'Kampus A', 'jenis' => 'SMK', 'alamat' => 'Kampus A, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 3 Cileungsi']);
+        $smk1 = Unit::create(['nama' => 'SMKM 1', 'kampus' => 'Kampus A', 'jenis' => 'SMK', 'alamat' => 'Kampus A, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 1 Cileungsi']);
+        $smk3 = Unit::create(['nama' => 'SMKM 3', 'kampus' => 'Kampus A', 'jenis' => 'SMK', 'alamat' => 'Kampus A, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 3 Cileungsi']);
 
         // Kampus C
-        $sdMuh2 = Unit::create(['nama' => 'SD Muhammadiyah 2 Cileungsi', 'kampus' => 'Kampus C', 'jenis' => 'SD', 'alamat' => 'Kampus C, Cileungsi, Bogor', 'deskripsi' => 'SD Muhammadiyah 2 Cileungsi']);
-        $smpMuh2 = Unit::create(['nama' => 'SMP Muhammadiyah 2 Cileungsi', 'kampus' => 'Kampus C', 'jenis' => 'SMP', 'alamat' => 'Kampus C, Cileungsi, Bogor', 'deskripsi' => 'SMP Muhammadiyah 2 Cileungsi']);
+        $sdMuh2 = Unit::create(['nama' => 'SDM 2', 'kampus' => 'Kampus C', 'jenis' => 'SD', 'alamat' => 'Kampus C, Cileungsi, Bogor', 'deskripsi' => 'SD Muhammadiyah 2 Cileungsi']);
+        $smpMuh2 = Unit::create(['nama' => 'SMPM 2', 'kampus' => 'Kampus C', 'jenis' => 'SMP', 'alamat' => 'Kampus C, Cileungsi, Bogor', 'deskripsi' => 'SMP Muhammadiyah 2 Cileungsi']);
 
         // Kampus D
-        $smk2 = Unit::create(['nama' => 'SMK Muhammadiyah 2 Cileungsi', 'kampus' => 'Kampus D', 'jenis' => 'SMK', 'alamat' => 'Kampus D, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 2 Cileungsi']);
-        $sdMuh3 = Unit::create(['nama' => 'SD Muhammadiyah 3 Cileungsi', 'kampus' => 'Kampus D', 'jenis' => 'SD', 'alamat' => 'Kampus D, Cileungsi, Bogor', 'deskripsi' => 'SD Muhammadiyah 3 Cileungsi']);
+        $smk2 = Unit::create(['nama' => 'SMKM 2', 'kampus' => 'Kampus D', 'jenis' => 'SMK', 'alamat' => 'Kampus D, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 2 Cileungsi']);
+        $sdMuh3 = Unit::create(['nama' => 'SDM 3', 'kampus' => 'Kampus D', 'jenis' => 'SD', 'alamat' => 'Kampus D, Cileungsi, Bogor', 'deskripsi' => 'SD Muhammadiyah 3 Cileungsi']);
 
         // Kampus E
-        $smk4 = Unit::create(['nama' => 'SMK Muhammadiyah 4 Cileungsi', 'kampus' => 'Kampus E', 'jenis' => 'SMK', 'alamat' => 'Kampus E, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 4 Cileungsi']);
+        $smk4 = Unit::create(['nama' => 'SMKM 4', 'kampus' => 'Kampus E', 'jenis' => 'SMK', 'alamat' => 'Kampus E, Cileungsi, Bogor', 'deskripsi' => 'SMK Muhammadiyah 4 Cileungsi']);
 
         // =========================================================
         // USERS — Akun contoh untuk semua role
