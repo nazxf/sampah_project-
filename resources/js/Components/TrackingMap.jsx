@@ -275,6 +275,14 @@ export default function TrackingMap({
             scrollWheelZoom: true,
         }).setView([-6.374672, 106.924831], 16);
 
+        // Pane kustom: garis rute (660) digambar DI ATAS kartu label permanen
+        // (tooltip pane 650) agar label tidak menutupi rute, sedangkan ikon
+        // tong/petugas (670) tetap di atas garis seperti sebelumnya.
+        const routePane = mapRef.current.createPane('sipesaRoutePane');
+        routePane.style.zIndex = 660;
+        const markerPane = mapRef.current.createPane('sipesaMarkerPane');
+        markerPane.style.zIndex = 670;
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
@@ -298,6 +306,7 @@ export default function TrackingMap({
             opacity: 0.9,
             lineCap: 'round',
             lineJoin: 'round',
+            pane: 'sipesaRoutePane',
         }).addTo(mapRef.current);
 
         // Leaflet membaca ukuran kontainer saat init. Di HP, ukuran kadang belum
@@ -346,6 +355,7 @@ export default function TrackingMap({
                 icon: isSelected ? makeTargetIcon() : makeBinIcon(bin.status),
                 title: `${bin.kode || ''} ${bin.nama || ''}`.trim(),
                 zIndexOffset: isSelected ? 500 : 0,
+                pane: 'sipesaMarkerPane',
             });
 
             // Label permanen nama tong di samping marker (+ persentase bila
@@ -431,6 +441,7 @@ export default function TrackingMap({
                     icon: makeUserIcon(heading),
                     title: 'Lokasi petugas saat ini',
                     zIndexOffset: 1000,
+                    pane: 'sipesaMarkerPane',
                 })
                     .bindPopup('<strong>Lokasi petugas</strong><br>Posisi real-time dari browser.')
                     .addTo(mapRef.current);
